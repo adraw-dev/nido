@@ -11,7 +11,30 @@
 | Bocetos de la ronda de diseño (abrir en el navegador) | [.impeccable/mocks/decision/](../.impeccable/mocks/decision/) |
 | Proyecto Expo SDK 58 con dependencias declaradas | [package.json](../package.json) |
 
-**Falta:** todo el código de la app (fase 0 en adelante). Todavía no existe la carpeta `src/`.
+**Fase 0 lista y probada (10 nov 2026):** los dos crearon cuenta en Expo Go, uno creó el hogar, el otro se unió con código y ambos ven sus líneas en Hoy.
+
+**Migraciones aplicadas en Supabase** (se aplican a mano en *SQL Editor*; el proyecto no tiene la CLI vinculada):
+- `20261109000000_mvp.sql`
+- `20261110000000_ensure_profile.sql`: crea perfiles faltantes y hace que `create_household`/`join_household` garanticen el perfil.
+
+**Configuración de Supabase:** *Confirm email* desactivado mientras desarrollan.
+
+Lo que contiene la fase 0:
+- `src/lib/`: cliente de Supabase (AsyncStorage + refresco con AppState) y QueryClient.
+- `src/ui/`: tokens "Línea de metro" claro/oscuro, primitivas (Text, Button, TextField, Screen, Avatar), metro (Station, Line, LinePlate, MetroDiagram, NidoMark), barra de navegación M3 y estados vacíos.
+- `src/features/session` y `src/features/household`: sesión, auth, hogar, integrantes, invitaciones y color de línea.
+- `src/app/`: `Stack.Protected` en el layout raíz → `(auth)` · `(onboarding)` · `(app)` con 5 pestañas y `hogar`.
+- Nota SDK 58: las pestañas JS se importan desde `expo-router/js-tabs`, y la barra personalizada usa `emitter` + `navigateToTab`.
+
+**Fase 1 (Tareas) lista y probada (10 nov 2026)** en los dos celulares, con sincronización en tiempo real:
+- `src/lib/recurrence.ts`: subconjunto propio de RRULE (diaria, semanal por días, mensual, con intervalo), sin la librería `rrule`. `src/lib/dates.ts` y `useToday`.
+- `src/features/tasks/`: `derive.ts` calcula el estado del día (atrasadas · hoy · próximas · sin fecha · hechas) a partir de la tarea y sus cumplimientos; API, hooks con completar/deshacer optimista y Realtime (`tasks` y `task_completions`).
+- Pantallas: pestaña Tareas (filtro Mías/Compartidas/Todas, grupos, botón +), `tareas/nueva`, `tareas/[id]` (detalle e historial, archivar, borrar) y `tareas/[id]/editar`.
+- Hoy: estaciones reales en la línea de cada integrante y en el tronco; tocar una estación la completa o la deshace.
+- No requirió migración: el esquema, la RLS y Realtime ya estaban en la migración MVP.
+- Criterio de listo: una tarea que completa uno aparece hecha en el celular del otro en segundos.
+
+**Siguiente:** fase 2 (Hábitos).
 
 **No verificado:** si la migración ya se aplicó en Supabase. Revisa en *Table Editor* si existen las tablas `households`, `tasks`, etc.
 
