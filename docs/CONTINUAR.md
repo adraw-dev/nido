@@ -34,7 +34,19 @@ Lo que contiene la fase 0:
 - No requirió migración: el esquema, la RLS y Realtime ya estaban en la migración MVP.
 - Criterio de listo: una tarea que completa uno aparece hecha en el celular del otro en segundos.
 
-**Siguiente:** fase 2 (Hábitos).
+**Fase 2 (Hábitos) lista y probada (10 nov 2026):**
+- `src/features/habits/stats.ts`: progreso del período (día, semana o mes), racha actual, récord, porcentaje y estado de cada día; todo calculado de `habit_logs`, nada guardado.
+- Registro: un toque suma 1 (upsert de la fila del día); −1 resta y en 0 borra la fila. Solo el dueño registra (RLS).
+- Línea circular de la semana (`HabitRing`): el anillo se llena con el progreso y sus 7 estaciones son lunes a domingo.
+- Pantallas: pestaña Hábitos (mis hábitos, los que hoy no tocan y los compartidos de la pareja), `habitos/nuevo`, `habitos/[id]` (anillo, −1/+1, racha, récord, porcentajes, calendario mensual, registrar un día pasado) y `habitos/[id]/editar`.
+- Hoy: la tarjeta Hábitos muestra los cumplidos del día y suma con un toque.
+- Realtime sobre `habit_logs` (sin filtro: la tabla no tiene `household_id`; la RLS decide qué llega).
+- No requirió migración.
+- Criterio de listo: una semana de uso real muestra racha y porcentaje correctos.
+
+**Siguiente:** fase 3 (Finanzas).
+
+> Si Metro dice `Unable to resolve` con un archivo que sí existe (pasa en Windows al crear varios archivos seguidos), reinicia con `npx expo start -c`.
 
 **No verificado:** si la migración ya se aplicó en Supabase. Revisa en *Table Editor* si existen las tablas `households`, `tasks`, etc.
 

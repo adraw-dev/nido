@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TodayHabitsCard } from '@/features/habits/components/TodayHabitsCard';
 import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
 import { lineOf, type TaskView } from '@/features/tasks/derive';
@@ -159,17 +160,7 @@ export default function TodayScreen() {
         ) : null}
 
         <View style={styles.row}>
-          <View style={[styles.card, styles.half, { backgroundColor: colors.surface, borderColor: colors.rule }]}>
-            <Text variant="plate" tone="muted">
-              Hábitos
-            </Text>
-            <Text variant="figure" style={styles.figure}>
-              —
-            </Text>
-            <Text variant="caption" tone="subtle">
-              Llegan en la fase 2
-            </Text>
-          </View>
+          <TodayHabitsCard householdId={household.id} />
           <View style={[styles.card, styles.half, { backgroundColor: colors.surface, borderColor: colors.rule }]}>
             <Text variant="plate" tone="muted">
               El mes
