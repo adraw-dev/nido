@@ -10,7 +10,7 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -19,7 +19,7 @@ import { SessionProvider, useSession } from '@/features/session/SessionProvider'
 import { queryClient } from '@/lib/query';
 import { configureForeground } from '@/features/notifications/scheduler';
 import { supabase } from '@/lib/supabase';
-import { Button, Screen, Text, useTheme } from '@/ui';
+import { AnimatedSplash, Button, Screen, Text, useTheme } from '@/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 // En Expo Go el splash no se puede personalizar; solo en builds propios (APK).
@@ -38,14 +38,21 @@ export default function RootLayout() {
     SchibstedGrotesk_700Bold,
     SchibstedGrotesk_800ExtraBold,
   });
+  const fontsReady = fontsLoaded || !!fontError;
+  const [appReady, setAppReady] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const markReady = useCallback(() => setAppReady(true), []);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
 
   return (
     <GestureHandlerRootView style={styles.flex}>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
           <NavigationTheme>
-            {fontsLoaded || fontError ? <RootNavigator /> : null}
+            {fontsReady ? <RootNavigator onReady={markReady} /> : null}
           </NavigationTheme>
+          {/* Inicio animado: encima de todo hasta que la app está lista. */}
+          {fontsReady && !splashDone ? <AnimatedSplash ready={appReady} onDone={finishSplash} /> : null}
         </SessionProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
@@ -74,7 +81,7 @@ function NavigationTheme({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RootNavigator() {
+function RootNavigator({ onReady }: { onReady: () => void }) {
   const { session, loading: sessionLoading } = useSession();
   const membership = useMyMembership();
 
@@ -83,9 +90,10 @@ function RootNavigator() {
   const ready = !sessionLoading && !checkingHousehold;
   const hasHousehold = !!membership.data;
 
+  // El splash nativo lo quita AnimatedSplash; aquí solo se avisa que ya se puede entrar.
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
-  }, [ready]);
+    if (ready) onReady();
+  }, [ready, onReady]);
 
   if (!ready) return null;
 

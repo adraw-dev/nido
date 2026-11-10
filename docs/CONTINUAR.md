@@ -80,7 +80,24 @@ Lo que contiene la fase 0:
 - Movimiento: pestañas con desplazamiento corto (`shift`, ninguno con "quitar animaciones"), esqueletos de carga (`Skeleton`, `SkeletonRows`) y conteo animado de totales (`useCountUp`).
 - APK: `eas.json` con perfil `preview` (APK de distribución interna). Plugin de `expo-notifications` en `app.json` (ícono monocromo, color del tronco, canal `recordatorios`).
 
-**Generar la APK (lo corre el usuario, necesita su cuenta de Expo):**
+**Generar la APK en el PC (Android Studio, sin EAS) — forma principal:**
+- Requisitos instalados: Android Studio (su Java `jbr`, JDK 25, funciona con Gradle 9.4.1), SDK, y **CMake 3.31.6** desde SDK Manager → SDK Tools → Show Package Details. No usar CMake 4.x.
+- Windows: con el CMake 3.22.1 por defecto falla con `Filename longer than 260 characters` (ninja 1.10 no soporta rutas largas). CMake 3.31.6 trae ninja 1.12.1, que sí. `LongPathsEnabled` ya está en 1.
+- `android/` se genera con `npx expo prebuild -p android` (está en `.gitignore`) y **se regenera desde cero**: no editarlo a mano. El plugin `plugins/withLocalAndroidBuild.js` (en `app.json`) aplica en cada prebuild:
+  - `reactNativeArchitectures=arm64-v8a` (más rápido; los celulares actuales son arm64).
+  - En Windows, `android/local.properties` con `sdk.dir` y `cmake.dir` (CMake 3.31.6), si existen.
+- Después de cambiar íconos, `app.json` o dependencias nativas: `npx expo prebuild -p android` y volver a compilar.
+- `expo-system-ui` instalado: sin él, la APK no sigue el modo oscuro del celular.
+- Compilar (PowerShell): `$env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"; cd android; .\gradlew.bat assembleRelease` → `android/app/build/outputs/apk/release/app-release.apk` (~40 MB). El `.env` se lee solo.
+- La APK se firma con la clave de depuración: sirve para instalar en los dos celulares, no para Play Store.
+
+**Inicio animado (10 nov 2026):** el splash nativo muestra la marca como rieles tenues (30 %); `src/ui/AnimatedSplash.tsx` arranca idéntico (mismo tamaño 160 dp y centro), llena las líneas de color, cierra la estación y muestra "Nido"; se queda hasta que la app está lista y se desvanece. Respeta "quitar animaciones". La geometría compartida está en `src/ui/metro/markGeometry.ts`. En Expo Go primero se ve la pantalla de carga de Expo Go (no se puede cambiar).
+
+**Selector de hora:** `@react-native-community/datetimepicker` (incluido en Expo Go). `TimeField` abre el reloj nativo de Android; se usa en la hora de las tareas y en el recordatorio de los hábitos.
+
+**Ícono y splash:** marca "Línea de metro" (dos líneas, naranja y verde azulado, que se unen en el tronco azul y terminan en una estación). Se generan con `node scripts/generate-icons.mjs` (sin dependencias) en `assets/`: ícono, adaptativo de Android (frente, fondo, monocromo), splash y favicon. La misma marca está en la app (`src/ui/metro/NidoMark.tsx`).
+
+**Generar la APK con EAS (nube; alternativa, necesita la cuenta de Expo):** ojo, el `.env` no se sube; si faltan las variables en EAS la app abre con "Faltan EXPO_PUBLIC_SUPABASE_URL…".
 1. `npx eas-cli@latest login`
 2. `npx eas-cli@latest init` (vincula el proyecto; agrega `extra.eas.projectId` a `app.json`).
 3. Variables de entorno en EAS (el `.env` no se sube): `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value <url> --visibility plaintext` y lo mismo para `EXPO_PUBLIC_SUPABASE_ANON_KEY`.

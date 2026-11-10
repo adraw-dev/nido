@@ -21,3 +21,6 @@ npm-debug.*
 
 # Impeccable: estado local
 .impeccable/config.local.json
+
+# Android Studio
+.idea/

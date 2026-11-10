@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { z } from 'zod';
 
 import { WEEKDAY_SHORT, type Weekday } from '@/lib/recurrence';
-import { Button, Chip, Screen, Text, TextField, radius, space, touchTarget, useTheme } from '@/ui';
+import { Button, Chip, Screen, Text, TextField, TimeField, radius, space, touchTarget, useTheme } from '@/ui';
 
 import { type Habit, type HabitInput, type HabitPeriod } from '../types';
 
@@ -133,15 +133,16 @@ export function HabitForm({ initial, submitLabel, submitting, error, onSubmit }:
         </View>
       ) : null}
 
-      <TextField
+      <TimeField
         label="Hora del recordatorio (opcional)"
-        placeholder="07:30"
         value={reminder}
-        onChangeText={setReminder}
-        error={reminderError}
-        hint="Te avisa ese día a esa hora. Se activa en Hogar → Recordatorios."
-        keyboardType="numbers-and-punctuation"
-        maxLength={5}
+        onChange={(t) => {
+          setReminder(t);
+          setReminderError(null);
+        }}
+        defaultTime="07:00"
+        placeholder="Sin recordatorio"
+        hint={reminderError ?? 'Te avisa ese día a esa hora. Se activa en Hogar → Recordatorios.'}
       />
 
       <View style={styles.switchRow}>

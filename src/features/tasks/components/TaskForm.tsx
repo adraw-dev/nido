@@ -8,7 +8,7 @@ import { useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
 import { addDaysKey, fromKey, todayKey, type DateKey } from '@/lib/dates';
 import { formatRule, parseRule, WEEKDAY_SHORT, type Freq, type Weekday } from '@/lib/recurrence';
-import { Button, Chip, Screen, Text, TextField, space, useTheme } from '@/ui';
+import { Button, Chip, Screen, Text, TextField, TimeField, space, useTheme } from '@/ui';
 
 import { PRIORITY_LABEL, type Priority, type Task, type TaskInput } from '../types';
 
@@ -182,14 +182,15 @@ export function TaskForm({ householdId, initial, submitLabel, submitting, error,
         ) : null}
       </Field>
 
-      <TextField
+      <TimeField
         label="Hora (opcional)"
-        placeholder="18:30"
         value={time}
-        onChangeText={setTime}
-        error={timeError}
-        keyboardType="numbers-and-punctuation"
-        maxLength={5}
+        onChange={(t) => {
+          setTime(t);
+          setTimeError(null);
+        }}
+        defaultTime="18:00"
+        hint={timeError ?? undefined}
       />
 
       <Field label="Se repite">
