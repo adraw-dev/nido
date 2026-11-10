@@ -8,7 +8,7 @@ import { useRecords, useVehicles } from '@/features/vehicles/hooks';
 import { kmLine, totalSpent } from '@/features/vehicles/stats';
 import { RECORD_META } from '@/features/vehicles/types';
 import { useToday } from '@/lib/useToday';
-import { Button, EmptyState, Fab, Text, space, useTheme } from '@/ui';
+import { Button, EmptyState, Fab, Skeleton, Text, space, useTheme } from '@/ui';
 
 export default function GarageScreen() {
   const { colors } = useTheme();
@@ -47,7 +47,12 @@ export default function GarageScreen() {
           </View>
         ) : null}
 
-        {list.length === 0 && !vehicles.isPending ? (
+        {vehicles.isPending ? (
+          <View style={styles.block}>
+            <Skeleton height={150} rounded={16} />
+            <Skeleton height={150} rounded={16} />
+          </View>
+        ) : list.length === 0 ? (
           <EmptyState
             title="Todavía no hay vehículos"
             caption="Agrega la moto o el carro. Cada uno tendrá su línea de kilometraje con el próximo mantenimiento como siguiente estación."

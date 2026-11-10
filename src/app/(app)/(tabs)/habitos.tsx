@@ -8,7 +8,7 @@ import { useHabitViews, type HabitView } from '@/features/habits/hooks';
 import { useLogView } from '@/features/habits/useLogView';
 import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
-import { Button, EmptyState, Fab, Text, space, useTheme } from '@/ui';
+import { Button, EmptyState, Fab, SkeletonRows, Text, space, useTheme } from '@/ui';
 
 type Section = { key: string; title: string; data: HabitView[] };
 
@@ -87,7 +87,9 @@ export default function HabitsScreen() {
           }}
           ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.rule }]} />}
           ListEmptyComponent={
-            isPending ? undefined : (
+            isPending ? (
+              <SkeletonRows count={3} leading={64} />
+            ) : (
               <EmptyState
                 title="Todavía no hay hábitos"
                 caption="Toca + para crear uno. Cada hábito es una línea circular de la semana; los tuyos son privados salvo que los compartas."

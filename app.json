@@ -25,6 +25,14 @@
       "expo-status-bar",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#3B5BDB",
+          "defaultChannel": "recordatorios"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

@@ -11,6 +11,8 @@ export * from './primitives/SegmentedControl';
 export * from './primitives/Fab';
 export * from './EmptyState';
 export * from './ModuleScreen';
+export * from './Skeleton';
+export * from './useCountUp';
 export * from './metro/Station';
 export * from './metro/Line';
 export * from './metro/LinePlate';

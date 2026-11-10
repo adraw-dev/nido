@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { addDaysKey, diffDays, fromKey, toKey } from '@/lib/dates';
 import { formatCOPShort } from '@/lib/money';
 import { useToday } from '@/lib/useToday';
-import { Text, radius, space, useTheme } from '@/ui';
+import { Text, radius, space, useCountUp, useTheme } from '@/ui';
 
 import { useGoals, useTransactions } from '../hooks';
 import { balanceOf, inRange } from '../summary';
@@ -27,6 +27,7 @@ export function TodayMonthCard({ householdId }: { householdId: string }) {
 
   const month = balanceOf((txs.data ?? []).filter((t) => inRange(t, thisStart, today)));
   const spent = month.expense;
+  const spentShown = useCountUp(spent);
   const extras = [
     month.income > 0 ? `Entró ${formatCOPShort(month.income)}` : null,
     month.saving !== 0 ? `Ahorro ${formatCOPShort(month.saving)}` : null,
@@ -50,7 +51,7 @@ export function TodayMonthCard({ householdId }: { householdId: string }) {
         El mes
       </Text>
       <Text variant="figure" style={styles.figure} numberOfLines={1} adjustsFontSizeToFit>
-        {txs.isPending ? '…' : formatCOPShort(spent)}
+        {txs.isPending ? '…' : formatCOPShort(spentShown)}
       </Text>
       <Text variant="caption" tone="subtle" numberOfLines={2}>
         {txs.isPending

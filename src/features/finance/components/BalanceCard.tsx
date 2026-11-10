@@ -1,13 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 
 import { formatCOP } from '@/lib/money';
-import { Text, radius, space, useTheme } from '@/ui';
+import { Text, radius, space, useCountUp, useTheme } from '@/ui';
 
 import type { Balance } from '../summary';
 
 /** Balance del período: entró, salió, se ahorró y lo que queda libre. */
 export function BalanceCard({ balance }: { balance: Balance }) {
   const { colors } = useTheme();
+  const net = useCountUp(balance.net);
   const items = [
     { label: 'Ingresos', value: formatCOP(balance.income) },
     { label: 'Gastos', value: formatCOP(balance.expense) },
@@ -23,7 +24,7 @@ export function BalanceCard({ balance }: { balance: Balance }) {
         Libre en el período
       </Text>
       <Text variant="display" tone={balance.net < 0 ? 'danger' : 'default'} style={styles.net}>
-        {formatCOP(balance.net)}
+        {formatCOP(net)}
       </Text>
       <View style={[styles.row, { borderTopColor: colors.rule }]}>
         {items.map((i) => (

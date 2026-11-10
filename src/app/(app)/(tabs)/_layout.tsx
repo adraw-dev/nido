@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router/js-tabs';
 
+import { useReducedMotion } from '@/ui';
 import { TabBar, type TabIcons } from '@/ui/TabBar';
 
 const icons: TabIcons = {
@@ -11,8 +12,16 @@ const icons: TabIcons = {
 };
 
 export default function TabsLayout() {
+  const reduced = useReducedMotion();
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} icons={icons} />}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        // Desplazamiento corto entre pestañas (eje compartido); sin animación si se pidió quitarlas.
+        animation: reduced ? 'none' : 'shift',
+      }}
+      tabBar={(props) => <TabBar {...props} icons={icons} />}
+    >
       <Tabs.Screen name="index" options={{ title: 'Hoy' }} />
       <Tabs.Screen name="tareas" options={{ title: 'Tareas' }} />
       <Tabs.Screen name="habitos" options={{ title: 'Hábitos' }} />

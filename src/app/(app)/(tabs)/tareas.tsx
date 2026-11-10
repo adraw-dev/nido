@@ -9,7 +9,7 @@ import { TaskRow } from '@/features/tasks/components/TaskRow';
 import { matchesFilter, type Bucket, type TaskFilter, type TaskView } from '@/features/tasks/derive';
 import { useTaskViews } from '@/features/tasks/hooks';
 import { useToggleView } from '@/features/tasks/useToggleView';
-import { Button, EmptyState, Fab, SegmentedControl, Text, space, useTheme } from '@/ui';
+import { Button, EmptyState, Fab, SegmentedControl, SkeletonRows, Text, space, useTheme } from '@/ui';
 
 const SECTIONS: { bucket: Bucket; title: string }[] = [
   { bucket: 'atrasadas', title: 'Atrasadas' },
@@ -100,7 +100,7 @@ export default function TasksScreen() {
           )}
           ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.rule }]} />}
           ListEmptyComponent={
-            isPending ? undefined : <EmptyState title={emptyCopy[filter].title} caption={emptyCopy[filter].caption} />
+            isPending ? <SkeletonRows count={5} leading={28} /> : <EmptyState title={emptyCopy[filter].title} caption={emptyCopy[filter].caption} />
           }
         />
       )}

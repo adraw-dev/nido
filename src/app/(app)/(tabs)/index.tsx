@@ -1,12 +1,14 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TodayMonthCard } from '@/features/finance/components/TodayMonthCard';
 import { TodayHabitsCard } from '@/features/habits/components/TodayHabitsCard';
+import { HouseActivityCard, UpcomingCard } from '@/features/today/components';
+import { QuickAdd } from '@/features/today/QuickAdd';
 import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
 import { lineOf, type TaskView } from '@/features/tasks/derive';
@@ -16,7 +18,6 @@ import { formatTime, fromKey, relativeDay } from '@/lib/dates';
 import {
   Avatar,
   Button,
-  Fab,
   MetroDiagram,
   Text,
   radius,
@@ -164,9 +165,12 @@ export default function TodayScreen() {
           <TodayHabitsCard householdId={household.id} />
           <TodayMonthCard householdId={household.id} />
         </View>
+
+        <UpcomingCard householdId={household.id} />
+        <HouseActivityCard householdId={household.id} />
       </ScrollView>
 
-      <Fab label="Nueva tarea" onPress={() => router.push('/tareas/nueva')} />
+      <QuickAdd householdId={household.id} />
     </SafeAreaView>
   );
 }

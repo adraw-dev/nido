@@ -74,7 +74,19 @@ Lo que contiene la fase 0:
 - Preferencias en el celular (AsyncStorage), pantalla `recordatorios` desde Hogar, con aviso de prueba. Al cerrar sesión se cancelan.
 - Pendiente (con la APK): push "tu pareja completó…" = tokens + webhook de `task_completions` → Edge Function → Expo Push.
 
-**Siguiente:** fase 5 (Hoy completo + pulido de movimiento) → MVP en APK, incluyendo los push de la pareja.
+**Fase 5 (Hoy completo + pulido) lista y probada en Expo Go (10 nov 2026); falta generar la APK:**
+- Hoy: "Se viene" (tareas de los próximos 3 días, aceite a ≤300 km o vencido, metas con fecha en ≤30 días) y "La casa" (completados, movimientos y registros de vehículo de los últimos 2 días, firmados con el color de quien lo hizo). Lógica pura en `src/features/today/feed.ts`.
+- Botón + de Hoy con menú: tarea, gasto, ingreso, hábito y gasto de vehículo (si hay vehículos). Atrás cierra el menú.
+- Movimiento: pestañas con desplazamiento corto (`shift`, ninguno con "quitar animaciones"), esqueletos de carga (`Skeleton`, `SkeletonRows`) y conteo animado de totales (`useCountUp`).
+- APK: `eas.json` con perfil `preview` (APK de distribución interna). Plugin de `expo-notifications` en `app.json` (ícono monocromo, color del tronco, canal `recordatorios`).
+
+**Generar la APK (lo corre el usuario, necesita su cuenta de Expo):**
+1. `npx eas-cli@latest login`
+2. `npx eas-cli@latest init` (vincula el proyecto; agrega `extra.eas.projectId` a `app.json`).
+3. Variables de entorno en EAS (el `.env` no se sube): `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value <url> --visibility plaintext` y lo mismo para `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+4. `npx eas-cli@latest build -p android --profile preview` → enlace para descargar e instalar la APK en ambos celulares.
+
+**Siguiente:** con la APK y el `projectId`, los push de la pareja (tokens + webhook de `task_completions` → Edge Function → Expo Push).
 
 > Si Metro dice `Unable to resolve` con un archivo que sí existe (pasa en Windows al crear varios archivos seguidos), reinicia con `npx expo start -c`.
 

@@ -17,7 +17,7 @@ import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { fromKey, relativeDay, toKey, type DateKey } from '@/lib/dates';
 import { formatCOP } from '@/lib/money';
 import { useToday } from '@/lib/useToday';
-import { Button, EmptyState, Fab, SegmentedControl, Text, space, touchTarget, useTheme } from '@/ui';
+import { Button, EmptyState, Fab, SegmentedControl, SkeletonRows, Text, space, touchTarget, useTheme } from '@/ui';
 
 type MoneyTab = 'movimientos' | 'metas' | 'reportes';
 
@@ -137,7 +137,9 @@ export default function MoneyScreen() {
 
         {view === 'movimientos' ? (
           days.length === 0 ? (
-            yearTx.isPending ? null : (
+            yearTx.isPending ? (
+              <SkeletonRows count={4} leading={40} />
+            ) : (
               <EmptyState
                 title="Sin movimientos este mes"
                 caption={`Toca + para registrar un gasto ${scope === 'hogar' ? 'del hogar' : 'tuyo'}. Cada movimiento queda firmado con tu color.`}
