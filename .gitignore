@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+
+# Variables de entorno (la anon key va en .env, nunca en el repo)
+.env
+.env*.local
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.*
+
+# Impeccable: estado local
+.impeccable/config.local.json
