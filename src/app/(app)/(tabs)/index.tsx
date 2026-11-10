@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TodayMonthCard } from '@/features/finance/components/TodayMonthCard';
 import { TodayHabitsCard } from '@/features/habits/components/TodayHabitsCard';
 import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
@@ -161,17 +162,7 @@ export default function TodayScreen() {
 
         <View style={styles.row}>
           <TodayHabitsCard householdId={household.id} />
-          <View style={[styles.card, styles.half, { backgroundColor: colors.surface, borderColor: colors.rule }]}>
-            <Text variant="plate" tone="muted">
-              El mes
-            </Text>
-            <Text variant="figure" style={styles.figure}>
-              $0
-            </Text>
-            <Text variant="caption" tone="subtle">
-              Llega en la fase 3
-            </Text>
-          </View>
+          <TodayMonthCard householdId={household.id} />
         </View>
       </ScrollView>
 
@@ -221,16 +212,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: space.xs,
   },
-  half: {
-    flex: 1,
-  },
   invite: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
     gap: space.sm,
-  },
-  figure: {
-    fontSize: 24,
-    lineHeight: 30,
   },
 });

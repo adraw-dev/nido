@@ -44,7 +44,18 @@ Lo que contiene la fase 0:
 - No requirió migración.
 - Criterio de listo: una semana de uso real muestra racha y porcentaje correctos.
 
-**Siguiente:** fase 3 (Finanzas).
+**Fase 3 (Finanzas) lista y probada (10 nov 2026)**; el criterio de "un mes que cuadra" se confirma con el uso:
+- `src/lib/money.ts`: formato COP propio (`$ 180.000`, `$ 1,3 M`, `$ 850 mil`) y lectura de lo que se escribe.
+- `src/features/finance/summary.ts`: balance (libre = ingresos − gastos − ahorro), agrupación por día, por categoría y por mes, y progreso de metas (suma de aportes; nada guardado).
+- Registro rápido `dinero/nuevo`: teclado numérico abierto, Gasto/Ingreso/Ahorro, categorías con ícono (sin elegir = "Otros"), fecha, Del hogar/Solo mío. Editar y borrar en `dinero/[id]` (borrar solo el autor).
+- Pestaña Dinero: selector Hogar/Personal (`visibility`), mes navegable, balance y vistas Movimientos (por día, firmados con el color de quien registró) · Metas · Reportes (barras por categoría y columnas de 12 meses, una serie en azul del tronco; tocar una columna elige el mes).
+- Metas: `dinero/metas/nueva`, detalle con aportar/retirar e historial, editar, archivar y borrar.
+- Hoy: la tarjeta El mes muestra lo gastado frente al mismo tramo del mes pasado y la meta principal.
+- Realtime sobre `transactions`. No requirió migración.
+- Pendiente para después: categorías propias del hogar (la tabla ya lo permite).
+- Criterio de listo: un mes registrado cuadra con lo que gastaron de verdad.
+
+**Siguiente:** fase 4 (Vehículos).
 
 > Si Metro dice `Unable to resolve` con un archivo que sí existe (pasa en Windows al crear varios archivos seguidos), reinicia con `npx expo start -c`.
 
