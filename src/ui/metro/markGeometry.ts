@@ -38,6 +38,15 @@ export const MARK_LENGTHS = {
   station: 2 * Math.PI * MARK.station.r,
 };
 
+/**
+ * Círculo como trazo que empieza arriba y va en sentido horario. Sirve para
+ * animar su llenado con strokeDashoffset sin rotar el SVG (en web, la
+ * propiedad `origin` de react-native-svg da un aviso).
+ */
+export function circleFromTop(cx: number, cy: number, r: number): string {
+  return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx} ${cy + r} A ${r} ${r} 0 1 1 ${cx} ${cy - r}`;
+}
+
 /** Colores de marca (fijos: el logo no cambia con el modo oscuro). */
 export const BRAND = {
   naranja: '#D9480F',

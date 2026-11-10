@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, G, Path } from 'react-native-svg';
 
 import { Station, Text, easing, metro, motion, useMotionDuration, useTheme, type StationState } from '@/ui';
+import { circleFromTop } from '@/ui/metro/markGeometry';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export type HabitRingProps = {
   size: number;
@@ -50,19 +51,16 @@ export function HabitRing({ size, color, fraction, week, todayIndex, center, cap
       <View style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Svg width={size} height={size}>
           <Circle cx={c} cy={c} r={r} stroke={color} strokeOpacity={0.22} strokeWidth={stroke} fill="none" />
-          <G rotation={-90} origin={`${c}, ${c}`}>
-            <AnimatedCircle
-              cx={c}
-              cy={c}
-              r={r}
-              stroke={color}
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              fill="none"
-              strokeDasharray={[circumference, circumference]}
-              animatedProps={arcProps}
-            />
-          </G>
+          {/* El progreso arranca arriba (lunes) y avanza en sentido horario. */}
+          <AnimatedPath
+            d={circleFromTop(c, c, r)}
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={[circumference, circumference]}
+            animatedProps={arcProps}
+          />
           {(week ?? []).map((state, i) => {
             const { x, y } = stationAt(i);
             return (

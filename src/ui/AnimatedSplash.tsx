@@ -10,14 +10,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 
-import { BRAND, MARK, MARK_LENGTHS } from './metro/markGeometry';
+import { BRAND, MARK, MARK_LENGTHS, circleFromTop } from './metro/markGeometry';
 import { easing, useReducedMotion } from './motion';
 import { Text } from './primitives/Text';
 import { useTheme } from './theme';
 import { fonts } from './tokens';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /** Tamaño del logo: igual al splash nativo (imageWidth 160 en app.json). */
 const BOX = 160;
@@ -130,18 +129,14 @@ export function AnimatedSplash({ ready, onDone }: { ready: boolean; onDone: () =
             strokeDasharray={[MARK_LENGTHS.trunk, MARK_LENGTHS.trunk]}
             animatedProps={trunkProps}
           />
-          <AnimatedCircle
-            cx={s.cx}
-            cy={s.cy}
-            r={s.r}
+          {/* Empieza arriba, donde llega el tronco. */}
+          <AnimatedPath
+            d={circleFromTop(s.cx, s.cy, s.r)}
             fill="none"
             stroke={BRAND.tronco}
             strokeWidth={s.stroke}
             strokeDasharray={[MARK_LENGTHS.station, MARK_LENGTHS.station]}
             animatedProps={stationProps}
-            // Empieza arriba, donde llega el tronco.
-            rotation={-90}
-            origin={`${s.cx}, ${s.cy}`}
           />
         </Svg>
         <Animated.View style={[styles.title, titleStyle]}>
