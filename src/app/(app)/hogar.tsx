@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -167,6 +168,8 @@ export default function HouseholdScreen() {
           onPress={() => invite.mutate(household.id)}
         />
       </View>
+
+      <Button label="Recordatorios" variant="outline" onPress={() => router.push('/recordatorios')} />
 
       <Button
         label="Cerrar sesión"

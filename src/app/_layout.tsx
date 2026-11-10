@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useMyMembership } from '@/features/household/hooks';
 import { SessionProvider, useSession } from '@/features/session/SessionProvider';
 import { queryClient } from '@/lib/query';
+import { configureForeground } from '@/features/notifications/scheduler';
 import { supabase } from '@/lib/supabase';
 import { Button, Screen, Text, useTheme } from '@/ui';
 
@@ -25,6 +26,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 if (!isRunningInExpoGo()) {
   SplashScreen.setOptions({ duration: 200, fade: true });
 }
+// Avisos visibles también con la app abierta.
+configureForeground();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

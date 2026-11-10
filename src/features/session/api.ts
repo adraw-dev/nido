@@ -1,3 +1,4 @@
+import { cancelAllNido } from '@/features/notifications/scheduler';
 import { supabase } from '@/lib/supabase';
 
 /** Traduce los errores de Supabase Auth que la pareja puede ver. */
@@ -33,6 +34,8 @@ export async function signUp(email: string, password: string, displayName: strin
 }
 
 export async function signOut() {
+  // Los recordatorios agendados son de esta cuenta: no deben quedar en el celular.
+  await cancelAllNido().catch(() => {});
   const { error } = await supabase.auth.signOut();
   // Si el servidor rechaza (usuario borrado, sin red), igual se borra la sesión del celular.
   if (error) await supabase.auth.signOut({ scope: 'local' });

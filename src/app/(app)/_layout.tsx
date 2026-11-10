@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import { useFinanceRealtime } from '@/features/finance/hooks';
 import { useHabitRealtime } from '@/features/habits/hooks';
 import { useCurrentHousehold } from '@/features/household/hooks';
+import { useOpenFromNotification, useReminderSync } from '@/features/notifications/useReminders';
 import { useTaskRealtime } from '@/features/tasks/hooks';
+import { useVehicleRealtime } from '@/features/vehicles/hooks';
 import { fonts, useTheme } from '@/ui';
 
 export const unstable_settings = {
@@ -17,6 +19,10 @@ export default function AppLayout() {
   useTaskRealtime(household.id);
   useHabitRealtime(household.id);
   useFinanceRealtime(household.id);
+  useVehicleRealtime(household.id);
+  // Recordatorios locales de tareas y hábitos; tocar un aviso abre su pantalla.
+  useReminderSync(household.id);
+  useOpenFromNotification();
 
   return (
     <Stack
@@ -30,6 +36,7 @@ export default function AppLayout() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="hogar" options={{ title: 'Hogar' }} />
+      <Stack.Screen name="recordatorios" options={{ title: 'Recordatorios' }} />
       <Stack.Screen name="tareas/nueva" options={{ title: 'Nueva tarea', presentation: 'modal' }} />
       <Stack.Screen name="tareas/[id]" options={{ title: '' }} />
       <Stack.Screen name="tareas/[id]/editar" options={{ title: 'Editar tarea', presentation: 'modal' }} />
@@ -41,6 +48,11 @@ export default function AppLayout() {
       <Stack.Screen name="dinero/metas/nueva" options={{ title: 'Nueva meta', presentation: 'modal' }} />
       <Stack.Screen name="dinero/metas/[id]" options={{ title: '' }} />
       <Stack.Screen name="dinero/metas/[id]/editar" options={{ title: 'Editar meta', presentation: 'modal' }} />
+      <Stack.Screen name="garaje/nuevo" options={{ title: 'Nuevo vehículo', presentation: 'modal' }} />
+      <Stack.Screen name="garaje/[id]" options={{ title: '' }} />
+      <Stack.Screen name="garaje/[id]/editar" options={{ title: 'Editar vehículo', presentation: 'modal' }} />
+      <Stack.Screen name="garaje/registro/nuevo" options={{ title: 'Registrar', presentation: 'modal' }} />
+      <Stack.Screen name="garaje/registro/[id]" options={{ title: 'Registro', presentation: 'modal' }} />
     </Stack>
   );
 }

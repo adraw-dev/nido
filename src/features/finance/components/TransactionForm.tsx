@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useUserId } from '@/features/session/SessionProvider';
 import { addDaysKey, fromKey, todayKey, type DateKey } from '@/lib/dates';
 import { groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, SegmentedControl, Text, TextField, fonts, radius, space, useTheme } from '@/ui';
+import { Button, Chip, Screen, SegmentedControl, Text, TextField, fonts, radius, space, useTheme, useRevealFocused } from '@/ui';
 
 import { sortCategories, useCategories, useGoals } from '../hooks';
 import { categoryIcon, type Scope, type Transaction, type TransactionInput, type TxKind } from '../types';
@@ -26,6 +26,7 @@ export type TransactionFormProps = {
 export function TransactionForm({ householdId, initial, defaults, submitting, error, onSubmit, footerExtra }: TransactionFormProps) {
   const { colors } = useTheme();
   const userId = useUserId();
+  const revealFocused = useRevealFocused();
   const today = todayKey();
   const categories = useCategories(householdId);
   const goals = useGoals(householdId);
@@ -115,6 +116,7 @@ export function TransactionForm({ householdId, initial, defaults, submitting, er
           <Text style={[styles.currency, { color: colors.inkMuted }]}>{kind === 'saving' && withdraw ? '−$' : '$'}</Text>
           <TextInput
             accessibilityLabel="Valor en pesos"
+            onFocus={revealFocused}
             value={amountText}
             onChangeText={(t) => {
               const n = parseCOP(t);

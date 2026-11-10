@@ -10,6 +10,7 @@ import { type Habit, type HabitInput, type HabitPeriod } from '../types';
 
 const nameSchema = z.string().trim().min(1, 'Ponle un nombre.').max(60, 'Máximo 60 caracteres.');
 const ALL_DAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7];
+const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 
 export type HabitFormProps = {
   initial?: Habit;
@@ -27,6 +28,8 @@ export function HabitForm({ initial, submitLabel, submitting, error, onSubmit }:
   const [unit, setUnit] = useState(initial?.unit ?? '');
   const [days, setDays] = useState<Weekday[]>(initial?.weekdays?.length ? initial.weekdays : ALL_DAYS);
   const [shared, setShared] = useState(initial?.visibility === 'shared');
+  const [reminder, setReminder] = useState(initial?.reminder_at?.slice(0, 5) ?? '');
+  const [reminderError, setReminderError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
 
   function toggleDay(d: Weekday) {
@@ -39,7 +42,10 @@ export function HabitForm({ initial, submitLabel, submitting, error, onSubmit }:
   function submit() {
     const parsed = nameSchema.safeParse(name);
     setNameError(parsed.success ? null : parsed.error.issues[0].message);
-    if (!parsed.success) return;
+    const reminderOk = reminder.trim() === '' || TIME_RE.test(reminder.trim());
+    setReminderError(reminderOk ? null : 'Usa el formato 24 h, por ejemplo 07:30.');
+    if (!parsed.success || !reminderOk) return;
+    const [rh, rm] = reminder.trim() ? reminder.trim().split(':') : [];
     onSubmit({
       name: parsed.data,
       period,
@@ -47,6 +53,7 @@ export function HabitForm({ initial, submitLabel, submitting, error, onSubmit }:
       unit: unit.trim() || null,
       weekdays: period === 'day' && days.length < 7 ? days : null,
       visibility: shared ? 'shared' : 'personal',
+      reminder_at: rh ? `${rh.padStart(2, '0')}:${rm}` : null,
     });
   }
 
@@ -125,6 +132,17 @@ export function HabitForm({ initial, submitLabel, submitting, error, onSubmit }:
           </Text>
         </View>
       ) : null}
+
+      <TextField
+        label="Hora del recordatorio (opcional)"
+        placeholder="07:30"
+        value={reminder}
+        onChangeText={setReminder}
+        error={reminderError}
+        hint="Te avisa ese día a esa hora. Se activa en Hogar → Recordatorios."
+        keyboardType="numbers-and-punctuation"
+        maxLength={5}
+      />
 
       <View style={styles.switchRow}>
         <View style={styles.flex}>

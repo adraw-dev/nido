@@ -39,6 +39,8 @@ export type HabitInput = {
   target_count: number;
   weekdays: Weekday[] | null;
   unit: string | null;
+  /** 'HH:MM' o null: hora del recordatorio local. */
+  reminder_at: string | null;
 };
 
 export const PERIOD_LABEL: Record<HabitPeriod, string> = { day: 'al día', week: 'a la semana', month: 'al mes' };

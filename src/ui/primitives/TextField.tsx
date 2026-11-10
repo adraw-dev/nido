@@ -3,6 +3,7 @@ import { StyleSheet, TextInput, View, type TextInputInstance, type TextInputProp
 
 import { useTheme } from '../theme';
 import { fonts, radius, space } from '../tokens';
+import { useRevealFocused } from './Screen';
 import { Text } from './Text';
 
 export type TextFieldProps = TextInputProps & {
@@ -15,6 +16,7 @@ export type TextFieldProps = TextInputProps & {
 export function TextField({ label, error, hint, style, onFocus, onBlur, ref, ...rest }: TextFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const revealFocused = useRevealFocused();
   const borderColor = error ? colors.danger : focused ? colors.ink : colors.rule;
 
   return (
@@ -31,6 +33,7 @@ export function TextField({ label, error, hint, style, onFocus, onBlur, ref, ...
         maxFontSizeMultiplier={1.6}
         onFocus={(e) => {
           setFocused(true);
+          revealFocused();
           onFocus?.(e);
         }}
         onBlur={(e) => {

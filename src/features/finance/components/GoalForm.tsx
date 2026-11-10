@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useUserId } from '@/features/session/SessionProvider';
 import { fromKey, toKey, todayKey, type DateKey } from '@/lib/dates';
 import { groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, SegmentedControl, Text, TextField, fonts, space, useTheme } from '@/ui';
+import { Button, Chip, Screen, SegmentedControl, Text, TextField, fonts, space, useTheme, useRevealFocused } from '@/ui';
 
 import type { Goal, GoalInput, Scope } from '../types';
 
@@ -25,6 +25,7 @@ export type GoalFormProps = {
 export function GoalForm({ initial, defaultScope, submitLabel, submitting, error, onSubmit }: GoalFormProps) {
   const { colors } = useTheme();
   const userId = useUserId();
+  const revealFocused = useRevealFocused();
   const today = todayKey();
   const [name, setName] = useState(initial?.name ?? '');
   const [amountText, setAmountText] = useState(initial ? groupThousands(Number(initial.target_amount)) : '');
@@ -78,6 +79,7 @@ export function GoalForm({ initial, defaultScope, submitLabel, submitting, error
           <Text style={[styles.currency, { color: colors.inkMuted }]}>$</Text>
           <TextInput
             accessibilityLabel="Valor de la meta en pesos"
+            onFocus={revealFocused}
             value={amountText}
             onChangeText={(t) => {
               const n = parseCOP(t);

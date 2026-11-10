@@ -55,7 +55,26 @@ Lo que contiene la fase 0:
 - Pendiente para después: categorías propias del hogar (la tabla ya lo permite).
 - Criterio de listo: un mes registrado cuadra con lo que gastaron de verdad.
 
-**Siguiente:** fase 4 (Vehículos).
+**Fase 4 (Vehículos) lista y probada (10 nov 2026):**
+- Sin fotos de vehículos (decisión del 10 nov 2026: no gastar almacenamiento). Las tablas `attachments` y el bucket `media` siguen en la base, sin uso.
+- `src/features/vehicles/`: vehículos, historial con su movimiento vinculado (`transaction:transactions(...)`; si es personal de otra persona la RLS lo oculta y se muestra "Valor privado"), totales por vehículo y por tipo, y línea de kilometraje.
+- Registrar usa la RPC `create_vehicle_expense`: el gasto queda una sola vez, en el vehículo y en Dinero (categoría Vehículos). Editar crea, actualiza o quita el gasto según el valor; borrar el registro borra también el gasto si es tuyo.
+- Línea de kilometraje: últimos registros con km, la posición actual y el próximo aceite estimado (último aceite + 3.000 km moto / 5.000 km carro). La fase 8 lo vuelve configurable.
+- Pantallas: pestaña Garaje (tarjetas con ícono, km, gasto del año y aceite estimado), `garaje/nuevo`, `garaje/[id]` (perfil, actualizar km, gasto por tipo, historial filtrable), `garaje/[id]/editar`, `garaje/registro/nuevo` y `garaje/registro/[id]`.
+- Realtime sobre `vehicle_records` y cambios de `transactions`. No requirió migración.
+- Criterio de listo: el cambio de aceite aparece en la moto y en Dinero una sola vez.
+
+**Teclado (10 nov 2026):** con el modo de borde a borde de Android (SDK 58) la ventana no se encoge con el teclado. `Screen` usa `KeyboardAvoidingView` con `padding` en ambas plataformas (descontando la barra superior) y desplaza el campo enfocado a la vista; `TextField` lo pide al enfocarse. Campos de texto propios: llamar `useRevealFocused()` en `onFocus`.
+
+**Recordatorios locales (adelanto de la fase 7, 10 nov 2026), probados (llega el aviso de prueba):**
+- Expo Go falla al crear el canal de Android (`NullPointerException` nativo en `setNotificationChannelAsync`). `ensureChannel` lo crea con lo mínimo y, si falla, usa el canal por defecto de Expo. Revisar con la APK que el canal "Recordatorios" sí se cree.
+- Dependencia `expo-notifications` (~58.1.8). Los recordatorios locales funcionan en Expo Go; los push no (Android, desde SDK 53).
+- `src/features/notifications/`: `plan.ts` (puro) decide qué avisar; `scheduler.ts` agenda/cancela solo lo de Nido (identificadores `nido-…`, con huella para no reagendar lo que no cambió); `useReminders.ts` reagenda al cambiar datos o volver a la app, y abre la tarea o el hábito al tocar el aviso.
+- Tareas con hora (mías y compartidas, próximos 7 días, con anticipación de 0/10/30/60 min) y hábitos propios con `reminder_at` (diario o semanal según sus días). Máximo 60 agendados.
+- Preferencias en el celular (AsyncStorage), pantalla `recordatorios` desde Hogar, con aviso de prueba. Al cerrar sesión se cancelan.
+- Pendiente (con la APK): push "tu pareja completó…" = tokens + webhook de `task_completions` → Edge Function → Expo Push.
+
+**Siguiente:** fase 5 (Hoy completo + pulido de movimiento) → MVP en APK, incluyendo los push de la pareja.
 
 > Si Metro dice `Unable to resolve` con un archivo que sí existe (pasa en Windows al crear varios archivos seguidos), reinicia con `npx expo start -c`.
 
