@@ -5,6 +5,7 @@
 import { addDaysKey, diffDays, type DateKey } from '@/lib/dates';
 import { formatCOP } from '@/lib/money';
 
+import type { DueItem } from '@/features/finance/bills';
 import type { Transaction } from '@/features/finance/types';
 import type { GoalProgress } from '@/features/finance/summary';
 import type { TaskView } from '@/features/tasks/derive';
@@ -90,7 +91,7 @@ export type UpcomingItem = {
   detail: string;
   /** Más alto = más urgente; ordena la lista. */
   urgency: number;
-  icon: 'calendar' | 'oil' | 'target';
+  icon: 'calendar' | 'oil' | 'target' | 'bill';
   url: string;
   danger?: boolean;
 };
@@ -102,12 +103,14 @@ export function buildUpcoming(params: {
   views: TaskView[];
   oil: { vehicle: Vehicle; kmToOil: number | null }[];
   goals: GoalProgress[];
+  /** Gastos fijos y cuotas próximos o vencidos (ver `dueSoon`). */
+  bills?: DueItem[];
   today: DateKey;
   relativeDay: (d: DateKey) => string;
   formatKm: (km: number) => string;
   limit?: number;
 }): UpcomingItem[] {
-  const { views, oil, goals, today, relativeDay, formatKm, limit = 5 } = params;
+  const { views, oil, goals, bills = [], today, relativeDay, formatKm, limit = 5 } = params;
   const items: UpcomingItem[] = [];
 
   for (const v of views) {
@@ -148,6 +151,24 @@ export function buildUpcoming(params: {
       urgency: 60 - d,
       icon: 'target',
       url: `/dinero/metas/${g.goal.id}`,
+    });
+  }
+
+  for (const b of bills) {
+    const d = diffDays(b.on, today);
+    if (d > UPCOMING_DAYS) continue;
+    const more = b.overdueCount > 1 ? ` (${b.overdueCount} pendientes)` : '';
+    items.push({
+      id: `b-${b.id}`,
+      title: b.title,
+      detail: b.overdue
+        ? `${formatCOP(b.amount)} · venció ${relativeDay(b.on)}${more}`
+        : `${formatCOP(b.amount)} · ${d === 0 ? 'vence hoy' : `vence ${relativeDay(b.on)}`}`,
+      // Vencido: arriba con el aceite pasado; hoy y mañana, por encima de las tareas.
+      urgency: b.overdue ? 115 : 105 - d * 10,
+      icon: 'bill',
+      url: b.url,
+      danger: b.overdue,
     });
   }
 

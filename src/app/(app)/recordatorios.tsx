@@ -3,7 +3,16 @@ import { useState } from 'react';
 import { Alert, Linking, StyleSheet, Switch, View } from 'react-native';
 
 import { useSavePrefs, usePrefs, DEFAULT_PREFS, type NotificationPrefs } from '@/features/notifications/prefs';
+import {
+  alarmStatus,
+  alarmsAvailable,
+  countAlarms,
+  openExactAlarmSettings,
+  openFullScreenSettings,
+  testAlarm,
+} from '@/features/notifications/alarm';
 import { countScheduled, getPermission, requestPermission, sendTest } from '@/features/notifications/scheduler';
+import { formatTime } from '@/lib/dates';
 import { Button, Chip, Screen, Text, radius, space, useTheme } from '@/ui';
 
 const LEADS: { value: NotificationPrefs['taskLeadMin']; label: string }[] = [
@@ -13,6 +22,9 @@ const LEADS: { value: NotificationPrefs['taskLeadMin']; label: string }[] = [
   { value: 60, label: '1 h antes' },
 ];
 
+/** Horas para el aviso de pagos. */
+const BILL_HOURS = [7, 9, 12, 18];
+
 export default function RemindersScreen() {
   const { colors } = useTheme();
   const qc = useQueryClient();
@@ -21,7 +33,7 @@ export default function RemindersScreen() {
   const [testing, setTesting] = useState(false);
 
   const permission = useQuery({ queryKey: ['notification-permission'], queryFn: getPermission });
-  const scheduled = useQuery({ queryKey: ['notification-count'], queryFn: countScheduled, refetchInterval: 4000 });
+  const scheduled = useQuery({ queryKey: ['notification-count'], queryFn: async () => (await countScheduled()) + countAlarms(), refetchInterval: 4000 });
   const p = prefs.data ?? DEFAULT_PREFS;
   const granted = permission.data === 'granted';
 
@@ -65,8 +77,8 @@ export default function RemindersScreen() {
         <Text variant="title">{granted ? 'Notificaciones activas' : 'Notificaciones apagadas'}</Text>
         <Text tone="muted">
           {granted
-            ? `Este celular tiene ${scheduled.data ?? 0} recordatorios agendados. Se actualizan solos cuando cambian tus tareas y hábitos.`
-            : 'Nido necesita permiso para avisarte de tus tareas y hábitos.'}
+            ? `Este celular tiene ${scheduled.data ?? 0} recordatorios agendados. Se actualizan solos cuando cambian tus tareas, hábitos y pagos.`
+            : 'Nido necesita permiso para avisarte de tus tareas, hábitos y pagos.'}
         </Text>
         {granted ? (
           <Button label="Enviar aviso de prueba" variant="outline" onPress={test} loading={testing} />
@@ -91,6 +103,18 @@ export default function RemindersScreen() {
         ) : null}
       </View>
 
+      {p.tasks ? (
+        <View style={styles.section}>
+          <Row
+            title="Alarma para prioridad alta"
+            caption="Las tareas Alta con hora suenan como despertador: pantalla completa, sonido de alarma en bucle y vibración hasta que la apagues o la pospongas."
+            value={p.alarmHigh}
+            onChange={(alarmHigh) => update({ alarmHigh })}
+          />
+          {p.alarmHigh ? <AlarmSetup enabled={granted} /> : null}
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <Row
           title="Hábitos"
@@ -98,6 +122,37 @@ export default function RemindersScreen() {
           value={p.habits}
           onChange={(habits) => update({ habits })}
         />
+      </View>
+
+      <View style={styles.section}>
+        <Row
+          title="Pagos"
+          caption="Gastos fijos y cuotas de deudas sin pagar, del hogar y los tuyos. Si nadie lo marca pagado, insiste un aviso diario los 3 días siguientes."
+          value={p.bills}
+          onChange={(bills) => update({ bills })}
+        />
+        {p.bills ? (
+          <>
+            <View style={styles.wrapRow}>
+              {BILL_HOURS.map((h) => (
+                <Chip key={h} label={formatTime(`${h}:00`) ?? `${h}:00`} selected={p.billHour === h} onPress={() => update({ billHour: h })} />
+              ))}
+            </View>
+            <Row
+              title="Avisar el día antes"
+              caption="Un aviso normal la víspera, a la misma hora."
+              value={p.billDayBefore}
+              onChange={(billDayBefore) => update({ billDayBefore })}
+            />
+            <Row
+              title="Alarma el día de pago"
+              caption="El día que toca pagar suena como despertador, igual que las tareas de prioridad alta."
+              value={p.alarmBills}
+              onChange={(alarmBills) => update({ alarmBills })}
+            />
+            {p.alarmBills && !(p.tasks && p.alarmHigh) ? <AlarmSetup enabled={granted} /> : null}
+          </>
+        ) : null}
       </View>
 
       <View style={[styles.note, { backgroundColor: colors.surfaceMuted }]}>
@@ -108,6 +163,55 @@ export default function RemindersScreen() {
         </Text>
       </View>
     </Screen>
+  );
+}
+
+function AlarmSetup({ enabled }: { enabled: boolean }) {
+  const { colors } = useTheme();
+  const status = useQuery({
+    queryKey: ['alarm-status'],
+    queryFn: async () => alarmStatus(),
+    enabled: alarmsAvailable,
+    refetchInterval: 3000,
+  });
+
+  if (!alarmsAvailable) {
+    return (
+      <Text variant="caption" tone="muted">
+        Funciona con la app instalada (APK). En Expo Go estas tareas llegan como recordatorio normal.
+      </Text>
+    );
+  }
+
+  const s = status.data;
+  function test() {
+    testAlarm(10);
+    Alert.alert('Alarma en camino', 'Suena en 10 segundos. Bloquea el celular para ver la pantalla completa.');
+  }
+
+  return (
+    <View style={styles.section}>
+      {s && !s.fullScreen ? (
+        <View style={[styles.note, { backgroundColor: colors.surfaceMuted }]}>
+          <Text variant="label">Falta un permiso</Text>
+          <Text variant="caption" tone="muted">
+            Sin “Notificaciones de pantalla completa” la alarma suena igual, pero con el celular bloqueado solo se ve
+            como notificación.
+          </Text>
+          <Button label="Permitir pantalla completa" variant="outline" onPress={openFullScreenSettings} />
+        </View>
+      ) : null}
+      {s && !s.exact ? (
+        <View style={[styles.note, { backgroundColor: colors.surfaceMuted }]}>
+          <Text variant="label">Hora aproximada</Text>
+          <Text variant="caption" tone="muted">
+            Sin “Alarmas y recordatorios” Android puede retrasar la alarma varios minutos.
+          </Text>
+          <Button label="Permitir alarmas" variant="outline" onPress={openExactAlarmSettings} />
+        </View>
+      ) : null}
+      {enabled ? <Button label="Probar alarma" variant="outline" onPress={test} /> : null}
+    </View>
   );
 }
 

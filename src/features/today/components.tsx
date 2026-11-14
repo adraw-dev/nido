@@ -3,7 +3,8 @@ import { router, type Href } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useCategories, useGoals, useTransactions } from '@/features/finance/hooks';
+import { dueSoon } from '@/features/finance/bills';
+import { useCategories, useDebts, useFixedExpenses, useGoals, useTransactions } from '@/features/finance/hooks';
 import { useLineLookup } from '@/features/household/hooks';
 import { useCompletions, useTaskViews, useTasks } from '@/features/tasks/hooks';
 import { useRecords, useVehicles } from '@/features/vehicles/hooks';
@@ -13,7 +14,7 @@ import { addDaysKey, formatMoment, relativeDay } from '@/lib/dates';
 import { useToday } from '@/lib/useToday';
 import { Text, radius, space, useTheme } from '@/ui';
 
-import { ACTIVITY_DAYS, buildActivity, buildUpcoming } from './feed';
+import { ACTIVITY_DAYS, buildActivity, buildUpcoming, UPCOMING_DAYS } from './feed';
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -88,9 +89,9 @@ export function HouseActivityCard({ householdId }: { householdId: string }) {
   );
 }
 
-const UPCOMING_ICON = { calendar: 'calendar-clock', oil: 'oil', target: 'target' } as const;
+const UPCOMING_ICON = { calendar: 'calendar-clock', oil: 'oil', target: 'target', bill: 'cash-clock' } as const;
 
-/** "Se viene": tareas de los próximos días, aceite cercano y metas con fecha. */
+/** "Se viene": tareas de los próximos días, pagos fijos y cuotas, aceite cercano y metas con fecha. */
 export function UpcomingCard({ householdId }: { householdId: string }) {
   const { colors } = useTheme();
   const today = useToday();
@@ -98,8 +99,17 @@ export function UpcomingCard({ householdId }: { householdId: string }) {
   const vehicles = useVehicles(householdId);
   const records = useRecords(householdId);
   const goals = useGoals(householdId);
+  const fixed = useFixedExpenses(householdId);
+  const debts = useDebts(householdId, today);
 
   const items = useMemo(() => {
+    const bills = dueSoon({
+      fixed: fixed.list,
+      fixedPayments: fixed.payments,
+      debts: debts.states,
+      today,
+      days: UPCOMING_DAYS,
+    });
     const oil = (vehicles.data ?? []).map((v) => ({
       vehicle: v,
       kmToOil: kmLine(
@@ -112,11 +122,12 @@ export function UpcomingCard({ householdId }: { householdId: string }) {
       views: tasks.views,
       oil,
       goals: goals.progress,
+      bills,
       today,
       relativeDay: (d) => relativeDay(d, today),
       formatKm,
     });
-  }, [tasks.views, vehicles.data, records.data, goals.progress, today]);
+  }, [tasks.views, vehicles.data, records.data, goals.progress, fixed.list, fixed.payments, debts.states, today]);
 
   if (items.length === 0) return null;
 

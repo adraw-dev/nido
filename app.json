@@ -3,12 +3,13 @@
     "name": "Nido",
     "slug": "nido",
     "scheme": "nido",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "app.nido.hogar",
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#F6F7F7",
         "foregroundImage": "./assets/android-icon-foreground.png",

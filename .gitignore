@@ -6,8 +6,12 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-ios/
-android/
+# Proyectos nativos generados por prebuild (solo los de la raíz)
+/ios/
+/android/
+# Salidas de compilación de los módulos locales
+modules/*/android/build/
+modules/*/android/.cxx/
 
 # Variables de entorno (la anon key va en .env, nunca en el repo)
 .env

@@ -7,9 +7,28 @@ export type NotificationPrefs = {
   habits: boolean;
   /** Minutos de anticipación para las tareas con hora. */
   taskLeadMin: 0 | 10 | 30 | 60;
+  /** Las tareas de prioridad alta suenan como alarma a pantalla completa. */
+  alarmHigh: boolean;
+  /** Gastos fijos y cuotas de deudas sin pagar. */
+  bills: boolean;
+  /** Hora del aviso de pagos (0-23). */
+  billHour: number;
+  /** Avisar también el día antes. */
+  billDayBefore: boolean;
+  /** El día de pago suena como alarma a pantalla completa. */
+  alarmBills: boolean;
 };
 
-export const DEFAULT_PREFS: NotificationPrefs = { tasks: true, habits: true, taskLeadMin: 0 };
+export const DEFAULT_PREFS: NotificationPrefs = {
+  tasks: true,
+  habits: true,
+  taskLeadMin: 0,
+  alarmHigh: true,
+  bills: true,
+  billHour: 9,
+  billDayBefore: true,
+  alarmBills: true,
+};
 
 const KEY = 'nido.recordatorios.v1';
 const queryKey = ['notification-prefs'] as const;

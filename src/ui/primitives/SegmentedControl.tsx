@@ -37,7 +37,7 @@ export function SegmentedControl<T extends string>({
               selected && { backgroundColor: colors.indicator },
             ]}
           >
-            <Text variant="label" color={selected ? colors.ink : colors.inkMuted}>
+            <Text variant="label" color={selected ? colors.ink : colors.inkMuted} numberOfLines={1} adjustsFontSizeToFit>
               {s.label}
             </Text>
           </Pressable>

@@ -5,20 +5,35 @@ import type { DateKey } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
 
 import {
+  archiveDebt,
+  archiveFixedExpense,
   archiveGoal,
+  createDebt,
+  createFixedExpense,
   createGoal,
   createTransaction,
+  deleteDebt,
+  deleteFixedExpense,
   deleteGoal,
   deleteTransaction,
   fetchCategories,
+  fetchDebtPayments,
+  fetchDebts,
+  fetchFixedExpenses,
+  fetchFixedPayments,
   fetchGoalSavings,
   fetchGoals,
   fetchTransactions,
+  payDebt,
+  payFixedExpense,
+  updateDebt,
+  updateFixedExpense,
   updateGoal,
   updateTransaction,
 } from './api';
+import { debtState, type DebtState } from './bills';
 import { goalProgress, type GoalProgress } from './summary';
-import type { Category, GoalInput, TransactionInput } from './types';
+import type { Category, DebtInput, FixedExpenseInput, GoalInput, TransactionInput } from './types';
 
 export const financeKeys = {
   all: (hh: string) => ['finance', hh] as const,
@@ -26,6 +41,10 @@ export const financeKeys = {
   range: (hh: string, from: DateKey, to: DateKey) => ['finance', hh, 'tx', from, to] as const,
   goalSavings: (hh: string) => ['finance', hh, 'goal-savings'] as const,
   goals: (hh: string) => ['finance', hh, 'goals'] as const,
+  fixed: (hh: string) => ['finance', hh, 'fixed'] as const,
+  fixedPayments: (hh: string) => ['finance', hh, 'fixed-payments'] as const,
+  debts: (hh: string) => ['finance', hh, 'debts'] as const,
+  debtPayments: (hh: string) => ['finance', hh, 'debt-payments'] as const,
 };
 
 export function useCategories(householdId: string) {
@@ -107,19 +126,111 @@ export function useDeleteGoal(householdId: string) {
   return useMutation({ mutationFn: deleteGoal, onSuccess: invalidate });
 }
 
-/** Movimientos de la pareja en segundos. Los DELETE no se filtran por hogar en Realtime. */
+/** Gastos fijos activos y todos sus pagos. */
+export function useFixedExpenses(householdId: string) {
+  const fixed = useQuery({ queryKey: financeKeys.fixed(householdId), queryFn: () => fetchFixedExpenses(householdId) });
+  const payments = useQuery({
+    queryKey: financeKeys.fixedPayments(householdId),
+    queryFn: () => fetchFixedPayments(householdId),
+  });
+  return {
+    list: fixed.data ?? [],
+    payments: payments.data ?? [],
+    isPending: fixed.isPending || payments.isPending,
+    isError: fixed.isError || payments.isError,
+    refetch: async () => {
+      await Promise.all([fixed.refetch(), payments.refetch()]);
+    },
+  };
+}
+
+/** Deudas activas con su saldo, cuotas y abonos (calculados). */
+export function useDebts(householdId: string, today: DateKey) {
+  const debts = useQuery({ queryKey: financeKeys.debts(householdId), queryFn: () => fetchDebts(householdId) });
+  const payments = useQuery({
+    queryKey: financeKeys.debtPayments(householdId),
+    queryFn: () => fetchDebtPayments(householdId),
+  });
+  const states = useMemo<DebtState[]>(
+    () => (debts.data && payments.data ? debts.data.map((d) => debtState(d, payments.data, today)) : []),
+    [debts.data, payments.data, today],
+  );
+  return {
+    states,
+    isPending: debts.isPending || payments.isPending,
+    isError: debts.isError || payments.isError,
+    refetch: async () => {
+      await Promise.all([debts.refetch(), payments.refetch()]);
+    },
+  };
+}
+
+export function useSaveFixedExpense(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: string; input: FixedExpenseInput }) =>
+      id ? updateFixedExpense(id, input) : createFixedExpense(householdId, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveFixedExpense(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: archiveFixedExpense, onSuccess: invalidate });
+}
+
+export function useDeleteFixedExpense(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: deleteFixedExpense, onSuccess: invalidate });
+}
+
+export function usePayFixedExpense(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: payFixedExpense, onSuccess: invalidate });
+}
+
+export function useSaveDebt(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: string; input: DebtInput }) =>
+      id ? updateDebt(id, input) : createDebt(householdId, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useArchiveDebt(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: archiveDebt, onSuccess: invalidate });
+}
+
+export function useDeleteDebt(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: deleteDebt, onSuccess: invalidate });
+}
+
+export function usePayDebt(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({ mutationFn: payDebt, onSuccess: invalidate });
+}
+
+/** Tablas de Dinero que llegan en tiempo real (todas tienen household_id). */
+const REALTIME_TABLES = ['transactions', 'fixed_expenses', 'fixed_expense_payments', 'debts', 'debt_payments'] as const;
+
+/** Movimientos, fijos y deudas de la pareja en segundos. Los DELETE no se filtran por hogar en Realtime. */
 export function useFinanceRealtime(householdId: string | undefined) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!householdId) return;
     const refresh = () => qc.invalidateQueries({ queryKey: financeKeys.all(householdId) });
     const filter = `household_id=eq.${householdId}`;
-    const channel = supabase
-      .channel(`dinero:${householdId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter }, refresh)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'transactions', filter }, refresh)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'transactions' }, refresh)
-      .subscribe();
+    let channel = supabase.channel(`dinero:${householdId}`);
+    for (const table of REALTIME_TABLES) {
+      channel = channel
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table, filter }, refresh)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table, filter }, refresh)
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table }, refresh);
+    }
+    channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
     };

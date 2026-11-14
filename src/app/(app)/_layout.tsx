@@ -48,6 +48,13 @@ export default function AppLayout() {
       <Stack.Screen name="dinero/metas/nueva" options={{ title: 'Nueva meta', presentation: 'modal' }} />
       <Stack.Screen name="dinero/metas/[id]" options={{ title: '' }} />
       <Stack.Screen name="dinero/metas/[id]/editar" options={{ title: 'Editar meta', presentation: 'modal' }} />
+      <Stack.Screen name="dinero/pagar" options={{ title: 'Pagar', presentation: 'modal' }} />
+      <Stack.Screen name="dinero/fijos/nuevo" options={{ title: 'Nuevo gasto fijo', presentation: 'modal' }} />
+      <Stack.Screen name="dinero/fijos/[id]" options={{ title: '' }} />
+      <Stack.Screen name="dinero/fijos/[id]/editar" options={{ title: 'Editar gasto fijo', presentation: 'modal' }} />
+      <Stack.Screen name="dinero/deudas/nueva" options={{ title: 'Nueva deuda', presentation: 'modal' }} />
+      <Stack.Screen name="dinero/deudas/[id]" options={{ title: '' }} />
+      <Stack.Screen name="dinero/deudas/[id]/editar" options={{ title: 'Editar deuda', presentation: 'modal' }} />
       <Stack.Screen name="garaje/nuevo" options={{ title: 'Nuevo vehículo', presentation: 'modal' }} />
       <Stack.Screen name="garaje/[id]" options={{ title: '' }} />
       <Stack.Screen name="garaje/[id]/editar" options={{ title: 'Editar vehículo', presentation: 'modal' }} />

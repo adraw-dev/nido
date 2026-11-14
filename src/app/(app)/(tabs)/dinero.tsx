@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { addMonths, endOfMonth, format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -9,8 +10,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BalanceCard } from '@/features/finance/components/BalanceCard';
 import { CategoryBars, MonthBars } from '@/features/finance/components/Charts';
 import { GoalCard } from '@/features/finance/components/GoalCard';
+import { PaymentsView } from '@/features/finance/components/PaymentsView';
 import { TxRow } from '@/features/finance/components/TxRow';
-import { useCategories, useGoals, useTransactions } from '@/features/finance/hooks';
+import { financeKeys, useCategories, useGoals, useTransactions } from '@/features/finance/hooks';
 import { balanceOf, byCategory, byMonth, groupByDay, inRange } from '@/features/finance/summary';
 import { scopeOf, type Scope } from '@/features/finance/types';
 import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
@@ -19,13 +21,14 @@ import { formatCOP } from '@/lib/money';
 import { useToday } from '@/lib/useToday';
 import { Button, EmptyState, Fab, SegmentedControl, SkeletonRows, Text, space, touchTarget, useTheme } from '@/ui';
 
-type MoneyTab = 'movimientos' | 'metas' | 'reportes';
+type MoneyTab = 'movimientos' | 'pagos' | 'metas' | 'reportes';
 
 const monthStart = (d: DateKey) => toKey(startOfMonth(fromKey(d)));
 const monthEnd = (d: DateKey) => toKey(endOfMonth(fromKey(d)));
 
 export default function MoneyScreen() {
   const { colors } = useTheme();
+  const qc = useQueryClient();
   const today = useToday();
   const { household } = useCurrentHousehold();
   const { colorOf, nameOf } = useLineLookup(household.id);
@@ -69,9 +72,8 @@ export default function MoneyScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
-              yearTx.refetch();
-              prevTx.refetch();
-              goals.refetch();
+              // Movimientos, metas, fijos y deudas.
+              qc.invalidateQueries({ queryKey: financeKeys.all(household.id) });
             }}
             colors={[colors.trunk]}
             tintColor={colors.trunk}
@@ -116,13 +118,14 @@ export default function MoneyScreen() {
           </View>
         ) : null}
 
-        {view !== 'metas' ? <BalanceCard balance={balance} /> : null}
+        {view === 'movimientos' || view === 'reportes' ? <BalanceCard balance={balance} /> : null}
 
         <SegmentedControl<MoneyTab>
           value={view}
           onChange={setView}
           segments={[
             { value: 'movimientos', label: 'Movimientos' },
+            { value: 'pagos', label: 'Pagos' },
             { value: 'metas', label: 'Metas' },
             { value: 'reportes', label: 'Reportes' },
           ]}
@@ -170,6 +173,10 @@ export default function MoneyScreen() {
               </View>
             ))
           )
+        ) : null}
+
+        {view === 'pagos' ? (
+          <PaymentsView householdId={household.id} scope={scope} month={month} monthEnd={monthEnd(month)} today={today} />
         ) : null}
 
         {view === 'metas' ? (

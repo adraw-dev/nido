@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { cancelAllAlarms } from './alarm';
 import type { PlannedReminder } from './plan';
 
 export const CHANNEL_ID = 'recordatorios';
@@ -55,7 +56,7 @@ export async function requestPermission(): Promise<boolean> {
 }
 
 function triggerOf(r: PlannedReminder, channelId: string | undefined): Notifications.NotificationTriggerInput {
-  if (r.kind === 'task') {
+  if (r.kind !== 'habit') {
     return { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at, channelId };
   }
   if (r.weekday === null) {
@@ -72,7 +73,7 @@ function triggerOf(r: PlannedReminder, channelId: string | undefined): Notificat
 
 /** Huella de un recordatorio: si cambia, se vuelve a agendar. */
 function fingerprint(r: PlannedReminder): string {
-  const when = r.kind === 'task' ? r.at.getTime() : `${r.weekday}-${r.hour}:${r.minute}`;
+  const when = r.kind !== 'habit' ? r.at.getTime() : `${r.weekday}-${r.hour}:${r.minute}`;
   return `${r.title}|${r.body}|${when}`;
 }
 
@@ -105,8 +106,9 @@ export async function syncScheduled(plan: PlannedReminder[]): Promise<number> {
   return plan.length;
 }
 
-/** Quita todos los recordatorios de Nido (al cerrar sesión o desactivar). */
+/** Quita todos los recordatorios y alarmas de Nido (al cerrar sesión o desactivar). */
 export async function cancelAllNido() {
+  cancelAllAlarms();
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled.filter((n) => n.identifier.startsWith(PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),

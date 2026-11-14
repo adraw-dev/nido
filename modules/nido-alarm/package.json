@@ -1,0 +1,6 @@
+{
+  "name": "nido-alarm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alarmas a pantalla completa para tareas de prioridad alta (solo Android)."
+}

@@ -16,6 +16,7 @@
 **Migraciones aplicadas en Supabase** (se aplican a mano en *SQL Editor*; el proyecto no tiene la CLI vinculada):
 - `20261109000000_mvp.sql`
 - `20261110000000_ensure_profile.sql`: crea perfiles faltantes y hace que `create_household`/`join_household` garanticen el perfil.
+- **Pendiente de aplicar:** `20261113000000_deudas_fijos.sql` (deudas y gastos fijos). Sin ella, la pestaña Dinero → Pagos muestra error al cargar.
 
 **Configuración de Supabase:** *Confirm email* desactivado mientras desarrollan.
 
@@ -64,6 +65,18 @@ Lo que contiene la fase 0:
 - Realtime sobre `vehicle_records` y cambios de `transactions`. No requirió migración.
 - Criterio de listo: el cambio de aceite aparece en la moto y en Dinero una sola vez.
 
+**Deudas por pagar y gastos fijos (13 nov 2026), con migración pendiente de aplicar:**
+- Migración `supabase/migrations/20261113000000_deudas_fijos.sql`: tablas `fixed_expenses`, `fixed_expense_payments`, `debts` y `debt_payments`; RLS con el patrón de dominio (`visibility` Hogar/Personal, como `transactions` y metas); categoría del sistema "Deudas" (gasto); RPCs `pay_fixed_expense` y `pay_debt`; las cuatro tablas en Realtime. Probada con 42 casos en PGlite (RLS, pago único por período, cascada, cuotas, saldo, permisos de `anon`).
+- Pagar = RPC (security invoker): crea el gasto en `transactions` y el pago ligado, en una sola operación. `unique (fijo, period_on)` y `unique (deuda, period_on)` impiden pagar dos veces el mismo período. No hay DELETE directo de pagos: **deshacer = borrar el movimiento** en Dinero (`on delete cascade`).
+- Gastos fijos: `pay_days` con 1 día (mensual) o 2 (quincenal, p. ej. 15 y 30). 29–31 en un mes corto cae el último día (`is_pay_date` en SQL y `payDateIn` en `schedule.ts`, iguales). `starts_on` evita que períodos anteriores salgan vencidos.
+- Deudas: solo "lo que debemos" (decisión del 13 nov 2026). Pendiente = `opening_balance` (lo que faltaba al registrarla) − abonos; saldada = pendiente 0 (no se guarda). El abono guarda su valor (`debt_payments.amount`) para que el saldo no dependa de ver el movimiento; un trigger lo sincroniza si editan valor o fecha del movimiento. Editar "¿Cuánto falta hoy?" recalcula `opening_balance` (sirve para intereses o compras nuevas de la tarjeta). Cuota opcional (valor + día del mes) y fecha límite opcional. `pay_debt` rechaza abonos mayores al saldo.
+- Lógica pura: `src/features/finance/schedule.ts` (fechas de pago) y `src/features/finance/bills.ts` (`fixedBoard`, `debtState`, `dueSoon`). Vencidos: fijos hasta 3 meses atrás; cuotas hasta 12.
+- Pantallas: Dinero tiene Movimientos · **Pagos** · Metas · Reportes. Pagos muestra los fijos del mes como línea de estaciones (llena = pagado, anillo = pendiente, marca roja = vencido; el mes se navega), "Vencidos de antes", totales y las deudas (tarjeta con barra de avance en el color de su línea). Rutas: `dinero/pagar` (modal: valor editable y fecha; en deudas elige cuota o abono extra), `dinero/fijos/nuevo|[id]|[id]/editar`, `dinero/deudas/nueva|[id]|[id]/editar`.
+- Hoy → "Se viene": fijos sin pagar y cuotas que vencen en ≤3 días o ya vencieron (en rojo).
+- `SegmentedControl` ahora encoge el texto si no cabe (`adjustsFontSizeToFit`).
+- Recordatorios de pagos (13 nov 2026, por probar): en Recordatorios → Pagos (hora 7/9/12/6 p. m., default 9 a. m.). Cada período sin pagar (`unpaidBetween` en `bills.ts`) da: aviso el día antes (opcional), **alarma a pantalla completa el día de pago** (`alarmBills`, con el módulo `nido-alarm`; en Expo Go llega como aviso normal) y un aviso diario los 3 días siguientes si sigue sin marcar. Al pagarlo se cancelan al reagendar. Lo de la pareja solo se cancela cuando el celular recibe el pago (app abierta), igual que las tareas.
+- El botón de la alarma ahora dice "Ver en Nido" (sirve para tareas y pagos): requiere `npx expo prebuild -p android` y recompilar.
+
 **Teclado (10 nov 2026):** con el modo de borde a borde de Android (SDK 58) la ventana no se encoge con el teclado. `Screen` usa `KeyboardAvoidingView` con `padding` en ambas plataformas (descontando la barra superior) y desplaza el campo enfocado a la vista; `TextField` lo pide al enfocarse. Campos de texto propios: llamar `useRevealFocused()` en `onFocus`.
 
 **Recordatorios locales (adelanto de la fase 7, 10 nov 2026), probados (llega el aviso de prueba):**
@@ -73,6 +86,15 @@ Lo que contiene la fase 0:
 - Tareas con hora (mías y compartidas, próximos 7 días, con anticipación de 0/10/30/60 min) y hábitos propios con `reminder_at` (diario o semanal según sus días). Máximo 60 agendados.
 - Preferencias en el celular (AsyncStorage), pantalla `recordatorios` desde Hogar, con aviso de prueba. Al cerrar sesión se cancelan.
 - Pendiente (con la APK): push "tu pareja completó…" = tokens + webhook de `task_completions` → Edge Function → Expo Push.
+
+**Alarmas para prioridad alta (13 nov 2026), solo con la APK:**
+- Módulo nativo local `modules/nido-alarm` (Kotlin, API clásica `ModuleDefinition`, autolinkeado desde `modules/`). En Expo Go no existe: `alarmsAvailable` es false y esas tareas llegan como recordatorio normal.
+- Las tareas de prioridad Alta con hora (si `alarmHigh` está activo en Recordatorios) no se agendan con `expo-notifications`: `splitAlarms` las manda a `syncAlarms`, que deja en `AlarmManager.setAlarmClock` exactamente ese plan (guardado en SharedPreferences `nido_alarm`; se reagenda al reiniciar el celular).
+- Al sonar: `AlarmService` (servicio en primer plano tipo `mediaPlayback`) reproduce en bucle el sonido de alarma del sistema por el volumen de alarma (lo sube a ≥70 % mientras suena y luego lo restaura), vibra en bucle y muestra `AlarmActivity` a pantalla completa sobre el bloqueo: Apagar · Posponer 10 min · Ver tarea (`nido://tareas/<id>`). Si nadie la apaga, para a los 10 min y deja "Alarma sin apagar".
+- Pospuestas y la de prueba usan ids `snooze:…`; la sincronización no las borra. Si la tarea se completa, una pospuesta igual suena una vez más.
+- Permisos en el manifiesto del módulo: `USE_EXACT_ALARM`, `USE_FULL_SCREEN_INTENT`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, etc. En Android 14+ la pantalla completa puede requerir activarla en Ajustes: la pantalla Recordatorios lo detecta y lleva al ajuste.
+- Limitación: el celular solo agenda lo que ya recibió. Si la tarea se crea con la app de la otra persona cerrada, su alarma se agenda cuando abra Nido. Los push lo resolverían.
+- Tras cambiar el módulo: `npx expo prebuild -p android` y compilar la APK.
 
 **Fase 5 (Hoy completo + pulido) lista y probada en Expo Go (10 nov 2026); falta generar la APK:**
 - Hoy: "Se viene" (tareas de los próximos 3 días, aceite a ≤300 km o vencido, metas con fecha en ≤30 días) y "La casa" (completados, movimientos y registros de vehículo de los últimos 2 días, firmados con el color de quien lo hizo). Lógica pura en `src/features/today/feed.ts`.
@@ -91,11 +113,11 @@ Lo que contiene la fase 0:
 - Compilar (PowerShell): `$env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"; cd android; .\gradlew.bat assembleRelease` → `android/app/build/outputs/apk/release/app-release.apk` (~40 MB). El `.env` se lee solo.
 - La APK se firma con la clave de depuración: sirve para instalar en los dos celulares, no para Play Store.
 
-**Inicio animado (10 nov 2026):** el splash nativo muestra la marca como rieles tenues (30 %); `src/ui/AnimatedSplash.tsx` arranca idéntico (mismo tamaño 160 dp y centro), llena las líneas de color, cierra la estación y muestra "Nido"; se queda hasta que la app está lista y se desvanece. Respeta "quitar animaciones". La geometría compartida está en `src/ui/metro/markGeometry.ts`. En Expo Go primero se ve la pantalla de carga de Expo Go (no se puede cambiar).
+**Inicio animado y carga (13 nov 2026):** el splash nativo muestra "NIDO" como rieles tenues (30 %); `src/ui/AnimatedSplash.tsx` arranca idéntico (160 dp, escala 4,5 px por unidad y mismo centro) y un tren recorre la ruta llenándola de color y abriendo cada transbordo. Si la app no está lista, la ruta se vacía y se vuelve a recorrer; siempre termina con el logo completo y se desvanece. Respeta "quitar animaciones". Geometría en `src/ui/metro/markGeometry.ts`. En Expo Go primero se ve la pantalla de carga de Expo Go (no se puede cambiar).
 
 **Selector de hora:** `@react-native-community/datetimepicker` (incluido en Expo Go). `TimeField` abre el reloj nativo de Android; se usa en la hora de las tareas y en el recordatorio de los hábitos.
 
-**Ícono y splash:** marca "Línea de metro" (dos líneas, naranja y verde azulado, que se unen en el tronco azul y terminan en una estación). Se generan con `node scripts/generate-icons.mjs` (sin dependencias) en `assets/`: ícono, adaptativo de Android (frente, fondo, monocromo), splash y favicon. La misma marca está en la app (`src/ui/metro/NidoMark.tsx`).
+**Ícono y splash (logo E1, "Ruta con transbordos"):** "NIDO" escrito como una sola ruta de metro que cambia de color en cada transbordo (N naranja, I azul, D verde azulado, O magenta). El ícono es la N que sale de su estación hacia el primer transbordo. Se generan con `node scripts/generate-icons.mjs` (sin dependencias, misma geometría que `markGeometry.ts`) en `assets/`: ícono, adaptativo de Android (frente, fondo, monocromo), splash y favicon. En la app: `NidoMark` (símbolo) y `NidoWordmark` (logotipo, en el login), en `src/ui/metro/NidoMark.tsx`.
 
 **Generar la APK con EAS (nube; alternativa, necesita la cuenta de Expo):** ojo, el `.env` no se sube; si faltan las variables en EAS la app abre con "Faltan EXPO_PUBLIC_SUPABASE_URL…".
 1. `npx eas-cli@latest login`

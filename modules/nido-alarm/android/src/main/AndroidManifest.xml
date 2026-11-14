@@ -1,0 +1,40 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Hora exacta aunque el celular esté en reposo. USE_EXACT_ALARM se concede al instalar (Android 13+). -->
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <!-- Pantalla completa sobre el bloqueo. En Android 14+ puede requerir activarlo en Ajustes. -->
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <application>
+    <receiver
+      android:name="app.nido.alarm.AlarmReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+
+    <service
+      android:name="app.nido.alarm.AlarmService"
+      android:exported="false"
+      android:foregroundServiceType="mediaPlayback" />
+
+    <activity
+      android:name="app.nido.alarm.AlarmActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleInstance"
+      android:screenOrientation="portrait"
+      android:showWhenLocked="true"
+      android:taskAffinity="app.nido.alarm"
+      android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+      android:turnScreenOn="true" />
+  </application>
+</manifest>
