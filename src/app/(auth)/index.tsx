@@ -4,7 +4,7 @@ import { StyleSheet, View, type TextInputInstance } from 'react-native';
 
 import { authErrorMessage, signIn } from '@/features/session/api';
 import { fieldErrors, signInSchema } from '@/features/session/validation';
-import { Button, NidoMark, Screen, Text, TextField, space } from '@/ui';
+import { Button, NidoWordmark, Screen, Text, TextField, space } from '@/ui';
 
 type Field = 'email' | 'password';
 
@@ -48,8 +48,7 @@ export default function SignInScreen() {
       }
     >
       <View style={styles.header}>
-        <NidoMark />
-        <Text variant="display">Nido</Text>
+        <NidoWordmark />
         <Text tone="muted">La casa de los dos, en una sola línea.</Text>
       </View>
 

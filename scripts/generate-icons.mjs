@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Genera los íconos de Nido (dos líneas que se unen en el tronco compartido,
- * con una estación) en todos los tamaños que pide Expo. Sin dependencias:
- * dibuja con campos de distancia (bordes suavizados) y escribe PNG con zlib.
+ * Genera los íconos y el splash de Nido en todos los tamaños que pide Expo.
+ * Sin dependencias: dibuja con campos de distancia (bordes suavizados) y
+ * escribe PNG con zlib.
+ *
+ * - Ícono: el símbolo (la N que sale de su estación hacia el primer transbordo).
+ * - Splash: el logotipo "NIDO" como ruta de metro, en rieles tenues; la
+ *   animación de inicio (src/ui/AnimatedSplash.tsx) arranca igual y lo llena.
  *
  * Uso: node scripts/generate-icons.mjs
- * Misma geometría que src/ui/metro/NidoMark.tsx (caja de 56 unidades).
+ * Misma geometría que src/ui/metro/markGeometry.ts.
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,39 +20,88 @@ const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
 const COLORS = {
   bg: '#F6F7F7',
+  ink: '#15171A',
   naranja: '#D9480F',
   verdeAzulado: '#0A7F6F',
+  magenta: '#C2255C',
   tronco: '#3B5BDB',
   blanco: '#FFFFFF',
 };
 
 // ---------------------------------------------------------------------
-// Geometría de la marca (unidades de NidoMark)
+// Geometría (unidades de markGeometry.ts)
 // ---------------------------------------------------------------------
-function cubic(p0, p1, p2, p3, steps = 48) {
+
+/** Polilínea con esquinas redondeadas (cuadráticas), aplanada en puntos. */
+function rounded(pts, radii) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i];
+    const [ax, ay] = pts[i - 1];
+    const [bx, by] = pts[i + 1];
+    const la = Math.hypot(ax - px, ay - py);
+    const lb = Math.hypot(bx - px, by - py);
+    const v1 = [(ax - px) / la, (ay - py) / la];
+    const v2 = [(bx - px) / lb, (by - py) / lb];
+    const angle = Math.acos(Math.max(-1, Math.min(1, v1[0] * v2[0] + v1[1] * v2[1])));
+    const t = Math.min(radii[i] / Math.tan(angle / 2), la / 2, lb / 2);
+    const a = [px + v1[0] * t, py + v1[1] * t];
+    const b = [px + v2[0] * t, py + v2[1] * t];
+    out.push(a);
+    for (let s = 1; s <= 16; s++) {
+      const k = s / 16;
+      const u = 1 - k;
+      out.push([u * u * a[0] + 2 * u * k * px + k * k * b[0], u * u * a[1] + 2 * u * k * py + k * k * b[1]]);
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
+function circle(cx, cy, r, steps = 160) {
   const pts = [];
   for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const u = 1 - t;
-    pts.push([
-      u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
-      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1],
-    ]);
+    const a = (i / steps) * Math.PI * 2;
+    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
   }
   return pts;
 }
 
-const LEFT = [[14, 6], ...cubic([14, 18], [14, 28], [28, 24], [28, 34])];
-const RIGHT = [[42, 6], ...cubic([42, 18], [42, 28], [28, 24], [28, 34])];
-// El tronco nace un poco arriba de la unión (la tapa) y termina en la estación,
-// como una estación terminal.
-const TRUNK = [
-  [28, 31],
-  [28, 38.25], // con la punta redonda llega justo al borde del hueco de la estación
-];
-const STATION = { c: [28, 45.5], r: 5.5, stroke: 3.5 };
-// Centro visual de la marca (de y = 3 a y = 52,75).
-const CENTER = [28, 27.9];
+const Y0 = 10;
+const Y1 = 58;
+const YM = 34;
+
+/** Símbolo del ícono. Caja: x de -1 a 61,2 · y de -0,2 a 67. */
+const SYMBOL = {
+  center: [30.1, 33.4],
+  lines: [
+    { pts: rounded([[8, Y1], [8, Y0], [40, Y1], [40, Y0], [56, Y0]], [0, 3.5, 3.5, 5, 0]), width: 9, color: 'naranja' },
+  ],
+  rings: [{ c: [8, Y1], r: 7, stroke: 4, color: 'naranja' }],
+  capsules: [{ c: [56, Y0], w: 8, h: 18, stroke: 2.4 }],
+};
+
+/** Logotipo "NIDO": la ruta completa, solo las líneas (rieles del splash). */
+const WORDMARK = {
+  center: [106, 34],
+  lines: [
+    { pts: rounded([[8, Y1], [8, Y0], [40, Y1], [40, Y0], [55, Y0]], [0, 3.5, 3.5, 5, 0]), width: 8, color: 'naranja' },
+    { pts: rounded([[55, Y0], [70, Y0], [70, Y1], [85, Y1]], [0, 5, 5, 0]), width: 8, color: 'tronco' },
+    {
+      pts: rounded(
+        [[85, Y1], [100, Y1], [100, Y0], [116, Y0], [132, 26], [132, 42], [116, Y1], [98, Y1]],
+        [0, 5, 7, 7, 7, 7, 7, 0],
+      ),
+      width: 8,
+      color: 'verdeAzulado',
+    },
+    { pts: [[132, YM], [146, YM]], width: 8, color: 'verdeAzulado' },
+    { pts: [[146, YM], [160, YM]], width: 8, color: 'magenta' },
+    { pts: circle(184, YM, 24), width: 8, color: 'magenta' },
+  ],
+  rings: [],
+  capsules: [],
+};
 
 // ---------------------------------------------------------------------
 // Rasterizado con suavizado por distancia
@@ -68,15 +121,15 @@ function distToSegment(px, py, ax, ay, bx, by) {
 
 /**
  * @param {number} size  lado del PNG en píxeles
- * @param {object} o     { scale: px por unidad, bg?: color de fondo, mono?: color único,
- *                         hole: 'clear' | color (interior de la estación),
- *                         alpha?: opacidad de la marca (rieles tenues del splash) }
+ * @param {object} o     { art: SYMBOL | WORDMARK, scale: px por unidad, bg?: color de fondo,
+ *                         mono?: color único, hole: 'clear' | color (interior de las estaciones),
+ *                         alpha?: opacidad del conjunto (rieles tenues del splash) }
  */
-function render(size, { scale, bg, mono, hole, alpha = 1 }) {
+function render(size, { art, scale, bg, mono, hole, alpha = 1 }) {
   const px = new Float64Array(size * size * 4); // RGBA premultiplicado, 0..1
   const cx = size / 2;
   const cy = size / 2;
-  const tx = (p) => [(p[0] - CENTER[0]) * scale + cx, (p[1] - CENTER[1]) * scale + cy];
+  const tx = (p) => [(p[0] - art.center[0]) * scale + cx, (p[1] - art.center[1]) * scale + cy];
 
   const over = (i, rgb, a) => {
     if (a <= 0) return;
@@ -86,64 +139,65 @@ function render(size, { scale, bg, mono, hole, alpha = 1 }) {
     px[i + 2] = (rgb[2] / 255) * a + px[i + 2] * k;
     px[i + 3] = a + px[i + 3] * k;
   };
+  const clear = (i, a) => {
+    const k = 1 - a;
+    px[i] *= k;
+    px[i + 1] *= k;
+    px[i + 2] *= k;
+    px[i + 3] *= k;
+  };
 
   if (bg) {
     const c = hex(bg);
     for (let i = 0; i < px.length; i += 4) over(i, c, 1);
   }
 
-  const stroke = (points, width, color) => {
+  /** Recorre los píxeles cercanos a la polilínea con la cobertura de un trazo de radio `radius` (px). */
+  const field = (points, radius, fn) => {
     const pts = points.map(tx);
-    const half = (width * scale) / 2;
-    const rgb = hex(mono ?? color);
     const xs = pts.map((p) => p[0]);
     const ys = pts.map((p) => p[1]);
-    const x0 = Math.max(0, Math.floor(Math.min(...xs) - half - 2));
-    const x1 = Math.min(size - 1, Math.ceil(Math.max(...xs) + half + 2));
-    const y0 = Math.max(0, Math.floor(Math.min(...ys) - half - 2));
-    const y1 = Math.min(size - 1, Math.ceil(Math.max(...ys) + half + 2));
+    const x0 = Math.max(0, Math.floor(Math.min(...xs) - radius - 2));
+    const x1 = Math.min(size - 1, Math.ceil(Math.max(...xs) + radius + 2));
+    const y0 = Math.max(0, Math.floor(Math.min(...ys) - radius - 2));
+    const y1 = Math.min(size - 1, Math.ceil(Math.max(...ys) + radius + 2));
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        let d = Infinity;
+        let d = pts.length === 1 ? Math.hypot(x + 0.5 - pts[0][0], y + 0.5 - pts[0][1]) : Infinity;
         for (let s = 0; s < pts.length - 1; s++) {
           const v = distToSegment(x + 0.5, y + 0.5, pts[s][0], pts[s][1], pts[s + 1][0], pts[s + 1][1]);
           if (v < d) d = v;
         }
-        over((y * size + x) * 4, rgb, clamp01(half - d + 0.5));
+        fn((y * size + x) * 4, clamp01(radius - d + 0.5));
       }
     }
   };
 
-  const disc = (center, radius, fn) => {
-    const [ccx, ccy] = tx(center);
-    const r = radius * scale;
-    for (let y = Math.max(0, Math.floor(ccy - r - 2)); y <= Math.min(size - 1, Math.ceil(ccy + r + 2)); y++) {
-      for (let x = Math.max(0, Math.floor(ccx - r - 2)); x <= Math.min(size - 1, Math.ceil(ccx + r + 2)); x++) {
-        const d = Math.hypot(x + 0.5 - ccx, y + 0.5 - ccy);
-        fn((y * size + x) * 4, clamp01(r - d + 0.5));
-      }
+  /** Estación hueca: borde de color y el interior vacío (o del color del fondo). */
+  const station = (points, outer, inner, color) => {
+    const rgb = hex(mono ?? color);
+    field(points, outer * scale, (i, a) => over(i, rgb, a));
+    if (hole === 'clear') {
+      field(points, inner * scale, clear);
+    } else {
+      const h = hex(hole);
+      field(points, inner * scale, (i, a) => over(i, h, a));
     }
   };
 
-  stroke(LEFT, 6, COLORS.naranja);
-  stroke(RIGHT, 6, COLORS.verdeAzulado);
-  stroke(TRUNK, 7, COLORS.tronco);
-
-  // Estación: anillo azul con el interior vacío (o del color del fondo).
-  const ringColor = hex(mono ?? COLORS.tronco);
-  const inner = STATION.r - STATION.stroke / 2;
-  disc(STATION.c, STATION.r + STATION.stroke / 2, (i, a) => over(i, ringColor, a));
-  if (hole === 'clear') {
-    disc(STATION.c, inner, (i, a) => {
-      const k = 1 - a;
-      px[i] *= k;
-      px[i + 1] *= k;
-      px[i + 2] *= k;
-      px[i + 3] *= k;
-    });
-  } else {
-    const holeColor = hex(hole);
-    disc(STATION.c, inner, (i, a) => over(i, holeColor, a));
+  for (const l of art.lines) {
+    const rgb = hex(mono ?? COLORS[l.color]);
+    field(l.pts, (l.width * scale) / 2, (i, a) => over(i, rgb, a));
+  }
+  for (const r of art.rings) station([r.c], r.r + r.stroke / 2, r.r - r.stroke / 2, COLORS[r.color]);
+  for (const c of art.capsules) {
+    // Cápsula vertical: un segmento con puntas redondas.
+    const half = (c.h - c.w) / 2;
+    const seg = [
+      [c.c[0], c.c[1] - half],
+      [c.c[0], c.c[1] + half],
+    ];
+    station(seg, c.w / 2 + c.stroke / 2, c.w / 2 - c.stroke / 2, COLORS.ink);
   }
 
   // Opacidad del conjunto (no por trazo, para que los cruces no se oscurezcan).
@@ -205,17 +259,17 @@ function png(size, rgba) {
 // Variantes
 // ---------------------------------------------------------------------
 const VARIANTS = [
-  // Ícono adaptativo de Android: la marca dentro de la zona segura (~61 % central).
-  { file: 'android-icon-foreground.png', size: 1024, scale: 10, hole: COLORS.bg },
+  // Ícono adaptativo de Android: el símbolo dentro de la zona segura (~61 % central).
+  { file: 'android-icon-foreground.png', size: 1024, art: SYMBOL, scale: 7.4, hole: COLORS.bg },
   { file: 'android-icon-background.png', size: 1024, scale: 0, bg: COLORS.bg, only: 'bg' },
   // Monocromo (íconos temáticos de Android 13+ y notificaciones): blanco sobre transparente.
-  { file: 'android-icon-monochrome.png', size: 1024, scale: 10, mono: COLORS.blanco, hole: 'clear' },
-  // Ícono general (iOS y respaldo).
-  { file: 'icon.png', size: 1024, scale: 14, bg: COLORS.bg, hole: COLORS.bg },
-  // Splash: rieles tenues sobre transparente (sirve en claro y oscuro). La animación de
-  // inicio (src/ui/AnimatedSplash.tsx) arranca igual y los llena de color.
-  { file: 'splash-icon.png', size: 1024, scale: 17, hole: 'clear', alpha: 0.3 },
-  { file: 'favicon.png', size: 48, scale: 0.72, bg: COLORS.bg, hole: COLORS.bg },
+  { file: 'android-icon-monochrome.png', size: 1024, art: SYMBOL, scale: 7.4, mono: COLORS.blanco, hole: 'clear' },
+  // Ícono general (iOS, README y respaldo).
+  { file: 'icon.png', size: 1024, art: SYMBOL, scale: 10.4, bg: COLORS.bg, hole: COLORS.bg },
+  // Splash: rieles tenues de "NIDO" sobre transparente (sirve en claro y oscuro). Cabe en el
+  // círculo del splash de Android 12+. AnimatedSplash usa la misma escala (4,5 px por unidad).
+  { file: 'splash-icon.png', size: 1024, art: WORDMARK, scale: 4.5, hole: 'clear', alpha: 0.3 },
+  { file: 'favicon.png', size: 48, art: SYMBOL, scale: 0.52, bg: COLORS.bg, hole: COLORS.bg },
 ];
 
 for (const v of VARIANTS) {
