@@ -31,6 +31,10 @@ export type Transaction = {
   goal_id: string | null;
   occurred_on: DateKey;
   description: string | null;
+  /** Escrito a mano o leído de una captura (migración 20261118; opcional hasta aplicarla). */
+  source?: 'manual' | 'captura';
+  /** Huella del movimiento importado; evita duplicados al reimportar. */
+  import_key?: string | null;
   created_at: string;
   updated_at: string;
 };

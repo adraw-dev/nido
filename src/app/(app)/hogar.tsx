@@ -20,9 +20,14 @@ import {
   ACCENT_KEYS,
   Avatar,
   Button,
+  HueSlider,
   Screen,
+  TRUNK_HUE,
   Text,
   accents,
+  hueAccent,
+  hueColor,
+  hueOf,
   inkOn,
   isAccentKey,
   radius,
@@ -44,11 +49,21 @@ export default function HouseholdScreen() {
 
   const myIndex = lines.findIndex((l) => l.user_id === userId);
   const me = lines[myIndex];
-  const myAccent: AccentKey | undefined = me
-    ? isAccentKey(me.profile.accent)
-      ? me.profile.accent
-      : ACCENT_KEYS[myIndex % ACCENT_KEYS.length]
-    : undefined;
+  const myHue = me ? hueOf(me.profile.accent) : null;
+  const myAccent: AccentKey | undefined =
+    me && myHue === null
+      ? isAccentKey(me.profile.accent)
+        ? me.profile.accent
+        : ACCENT_KEYS[myIndex % ACCENT_KEYS.length]
+      : undefined;
+  // Color propio: la barra de tonos se abre al tocar el último círculo.
+  const [customOpen, setCustomOpen] = useState(false);
+  const [previewHue, setPreviewHue] = useState<number | null>(null);
+  const showCustom = customOpen || myHue !== null;
+  const customHue = previewHue ?? myHue ?? 20;
+  const customHex = hueColor(customHue, scheme);
+  const nearTrunk = Math.abs(((customHue - TRUNK_HUE + 540) % 360) - 180) < 18;
+  const customUsedBy = lines.find((l) => l.user_id !== userId && l.color === customHex);
 
   async function copyCode(code: string) {
     await Clipboard.setStringAsync(code);
@@ -107,6 +122,7 @@ export default function HouseholdScreen() {
                 accessibilityLabel={`${accents[key].label}${usedBy ? `, lo usa ${usedBy.firstName}` : ''}`}
                 disabled={updateAccent.isPending}
                 onPress={() => {
+                  setCustomOpen(false);
                   if (selected) return;
                   Haptics.selectionAsync().catch(() => {});
                   updateAccent.mutate(key);
@@ -124,7 +140,61 @@ export default function HouseholdScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            accessibilityRole="radio"
+            accessibilityState={{ checked: myHue !== null, busy: updateAccent.isPending }}
+            accessibilityLabel="Color personalizado"
+            disabled={updateAccent.isPending}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              setCustomOpen(true);
+            }}
+            style={[styles.swatchHit, myHue !== null && { borderColor: colors.ink }]}
+          >
+            <View
+              style={[
+                styles.swatch,
+                myHue !== null
+                  ? { backgroundColor: customHex }
+                  : { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.rule },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={myHue !== null ? 'check' : 'palette-outline'}
+                size={22}
+                color={myHue !== null ? inkOn(customHex) : colors.ink}
+              />
+            </View>
+          </Pressable>
         </View>
+        {showCustom ? (
+          <View style={styles.custom}>
+            <View style={styles.customHead}>
+              <View style={[styles.customPreview, { backgroundColor: customHex }]} />
+              <Text variant="bodyStrong" style={styles.flex}>
+                Tu propio color
+              </Text>
+            </View>
+            <HueSlider
+              value={customHue}
+              onChange={setPreviewHue}
+              onCommit={(h) => {
+                setPreviewHue(h);
+                Haptics.selectionAsync().catch(() => {});
+                updateAccent.mutate(hueAccent(h), { onSettled: () => setPreviewHue(null) });
+              }}
+              disabled={updateAccent.isPending}
+              accessibilityLabel="Tono de tu color de línea"
+            />
+            <Text variant="caption" tone={nearTrunk || customUsedBy ? 'danger' : 'muted'}>
+              {nearTrunk
+                ? 'Se parece al azul del tronco, el color de lo compartido. Mejor elige otro tono.'
+                : customUsedBy
+                  ? `Es el mismo color de ${customUsedBy.firstName}.`
+                  : 'Desliza para elegir el tono; se guarda al soltar.'}
+            </Text>
+          </View>
+        ) : null}
         {updateAccent.isError ? (
           <Text variant="caption" tone="danger">
             No se pudo guardar el color. Intenta de nuevo.
@@ -237,6 +307,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  custom: {
+    gap: space.sm,
+    marginTop: space.sm,
+  },
+  customHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  customPreview: {
+    width: 20,
+    height: 20,
+    borderRadius: radius.pill,
   },
   swatchInitial: {
     fontFamily: 'Roboto_700Bold',

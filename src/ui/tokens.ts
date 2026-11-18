@@ -53,7 +53,20 @@ export const palettes: Record<ColorScheme, Palette> = {
 };
 
 /** Colores de línea que cada integrante puede elegir. Se guardan como clave en profiles.accent. */
-export const ACCENT_KEYS = ['naranja', 'verde-azulado', 'magenta', 'ambar', 'verde'] as const;
+// Los nuevos van al final: el color por defecto se asigna por orden de llegada.
+export const ACCENT_KEYS = [
+  'naranja',
+  'verde-azulado',
+  'magenta',
+  'ambar',
+  'verde',
+  'violeta',
+  'uva',
+  'cian',
+  'lima',
+  'cafe',
+  'grafito',
+] as const;
 export type AccentKey = (typeof ACCENT_KEYS)[number];
 
 export const accents: Record<AccentKey, { label: string; light: string; dark: string }> = {
@@ -62,10 +75,50 @@ export const accents: Record<AccentKey, { label: string; light: string; dark: st
   magenta: { label: 'Magenta', light: '#C2255C', dark: '#E8558A' },
   ambar: { label: 'Ámbar', light: '#E8A400', dark: '#FAB82E' },
   verde: { label: 'Verde', light: '#2F9E44', dark: '#51C266' },
+  violeta: { label: 'Violeta', light: '#6741D9', dark: '#9775FA' },
+  uva: { label: 'Uva', light: '#9C36B5', dark: '#CC5DE8' },
+  cian: { label: 'Cian', light: '#0C8599', dark: '#3BC9DB' },
+  lima: { label: 'Lima', light: '#5C940D', dark: '#94D82D' },
+  cafe: { label: 'Café', light: '#8B5A2B', dark: '#C99A6B' },
+  grafito: { label: 'Grafito', light: '#495057', dark: '#ADB5BD' },
 };
 
 export function isAccentKey(value: unknown): value is AccentKey {
   return typeof value === 'string' && (ACCENT_KEYS as readonly string[]).includes(value);
+}
+
+/** Color personalizado: solo el tono (0–359); el brillo se ajusta a claro u oscuro. */
+export type HueAccent = `hue-${number}`;
+export type Accent = AccentKey | HueAccent;
+
+/** Tono del tronco compartido (azul): un color personal muy cercano se confunde con él. */
+export const TRUNK_HUE = 228;
+
+export function hueOf(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const m = /^hue-(\d{1,3})$/.exec(value);
+  if (!m) return null;
+  const h = Number(m[1]);
+  return h >= 0 && h < 360 ? h : null;
+}
+
+export const hueAccent = (hue: number): HueAccent => `hue-${Math.round(((hue % 360) + 360) % 360)}`;
+
+function hslHex(h: number, s: number, l: number): string {
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const hex = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`.toUpperCase();
+}
+
+/** Tono → color de línea legible: más oscuro sobre fondo claro, más vivo sobre oscuro. */
+export function hueColor(hue: number, scheme: ColorScheme): string {
+  return scheme === 'dark' ? hslHex(hue, 0.8, 0.62) : hslHex(hue, 0.72, 0.42);
+}
+
+export function isAccent(value: unknown): value is Accent {
+  return isAccentKey(value) || hueOf(value) !== null;
 }
 
 /**
@@ -73,6 +126,8 @@ export function isAccentKey(value: unknown): value is AccentKey {
  * por orden de llegada al hogar para que el diagrama nunca quede en gris.
  */
 export function accentFor(accent: string | null | undefined, index: number, scheme: ColorScheme): string {
+  const hue = hueOf(accent);
+  if (hue !== null) return hueColor(hue, scheme);
   const key = isAccentKey(accent) ? accent : ACCENT_KEYS[index % ACCENT_KEYS.length];
   return accents[key][scheme];
 }

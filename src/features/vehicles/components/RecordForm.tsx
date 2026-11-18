@@ -1,13 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useUserId } from '@/features/session/SessionProvider';
-import { addDaysKey, fromKey, todayKey, type DateKey } from '@/lib/dates';
+import { todayKey, type DateKey } from '@/lib/dates';
 import { groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, Text, TextField, fonts, radius, space, useTheme, useRevealFocused } from '@/ui';
+import { Button, Chip, DateField, Screen, Text, TextField, fonts, radius, space, useTheme, useRevealFocused } from '@/ui';
 
 import { RECORD_META, RECORD_TYPES, type RecordInput, type RecordType, type Vehicle, type VehicleRecord } from '../types';
 
@@ -45,13 +43,6 @@ export function RecordForm({ vehicles, initial, defaultVehicleId, submitting, er
   const [titleError, setTitleError] = useState<string | null>(null);
 
   const canChangeScope = !initial?.transaction || initial.transaction.owner_id === userId;
-  const days = useMemo(() => {
-    const list = Array.from({ length: 31 }, (_, i) => addDaysKey(today, -i));
-    if (initial && !list.includes(initial.performed_on)) list.push(initial.performed_on);
-    return list;
-  }, [today, initial]);
-  const dayLabel = (d: DateKey) =>
-    d === today ? 'Hoy' : d === addDaysKey(today, -1) ? 'Ayer' : format(fromKey(d), 'EEE d MMM', { locale: es });
 
   function chooseType(next: RecordType) {
     setType(next);
@@ -191,16 +182,7 @@ export function RecordForm({ vehicles, initial, defaultVehicleId, submitting, er
         </View>
       ) : null}
 
-      <View style={styles.field}>
-        <Text variant="label" tone="muted">
-          Fecha
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-          {days.map((d) => (
-            <Chip key={d} label={dayLabel(d)} selected={day === d} onPress={() => setDay(d)} />
-          ))}
-        </ScrollView>
-      </View>
+      <DateField label="Fecha" value={day} onChange={(d) => d && setDay(d)} maximumDate={today} />
 
       <TextField
         label="Kilometraje (opcional)"
@@ -221,7 +203,6 @@ export function RecordForm({ vehicles, initial, defaultVehicleId, submitting, er
 
 const styles = StyleSheet.create({
   field: { gap: space.sm },
-  row: { flexDirection: 'row', gap: space.sm },
   wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   types: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   type: {

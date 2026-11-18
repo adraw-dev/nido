@@ -24,6 +24,8 @@ import {
   fetchGoalSavings,
   fetchGoals,
   fetchTransactions,
+  importTransactions,
+  type ImportedTransactionInput,
   payDebt,
   payFixedExpense,
   updateDebt,
@@ -98,6 +100,15 @@ export function useSaveTransaction(householdId: string) {
   return useMutation({
     mutationFn: ({ id, input }: { id?: string; input: TransactionInput }) =>
       id ? updateTransaction(id, input) : createTransaction(householdId, input),
+    onSuccess: invalidate,
+  });
+}
+
+/** Guarda lo importado de capturas; devuelve cuántos movimientos quedaron nuevos. */
+export function useImportTransactions(householdId: string) {
+  const invalidate = useInvalidateFinance(householdId);
+  return useMutation({
+    mutationFn: (rows: ImportedTransactionInput[]) => importTransactions(householdId, rows),
     onSuccess: invalidate,
   });
 }

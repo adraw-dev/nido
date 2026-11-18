@@ -1,14 +1,13 @@
-import { format, getISODay } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { getISODay } from 'date-fns';
+import { useState } from 'react';
+import { StyleSheet, Switch, View } from 'react-native';
 import { z } from 'zod';
 
 import { useLineLookup } from '@/features/household/hooks';
 import { useUserId } from '@/features/session/SessionProvider';
-import { addDaysKey, fromKey, todayKey, type DateKey } from '@/lib/dates';
+import { fromKey, todayKey, type DateKey } from '@/lib/dates';
 import { formatRule, parseRule, WEEKDAY_SHORT, type Freq, type Weekday } from '@/lib/recurrence';
-import { Button, Chip, Screen, Text, TextField, TimeField, space, useTheme } from '@/ui';
+import { Button, Chip, DateField, Screen, Text, TextField, TimeField, space, useTheme } from '@/ui';
 
 import { PRIORITY_LABEL, type Priority, type Task, type TaskInput } from '../types';
 
@@ -50,16 +49,6 @@ export function TaskForm({ householdId, initial, submitLabel, submitting, error,
 
   // Solo quien crea la tarea puede volverla privada (la base de datos lo exige).
   const canBePrivate = owner === userId && (!initial || initial.owner_id === userId);
-
-  const initialDue = initial?.due_on ?? null;
-  const dayOptions = useMemo(() => {
-    const keys = Array.from({ length: 14 }, (_, i) => addDaysKey(today, i));
-    if (initialDue && !keys.includes(initialDue)) keys.unshift(initialDue);
-    return keys;
-  }, [today, initialDue]);
-
-  const dayLabel = (key: DateKey) =>
-    key === today ? 'Hoy' : key === addDaysKey(today, 1) ? 'Mañana' : format(fromKey(key), 'EEE d', { locale: es });
 
   function chooseRepeat(next: Repeat) {
     setRepeat(next);
@@ -166,21 +155,13 @@ export function TaskForm({ householdId, initial, submitLabel, submitting, error,
         ) : null}
       </Field>
 
-      <Field label="Fecha">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-          {repeat === 'none' ? (
-            <Chip label="Sin fecha" selected={date === null} onPress={() => setDate(null)} />
-          ) : null}
-          {dayOptions.map((key) => (
-            <Chip key={key} label={dayLabel(key)} selected={date === key} onPress={() => setDate(key)} />
-          ))}
-        </ScrollView>
-        {repeat !== 'none' ? (
-          <Text variant="caption" tone="muted">
-            Es el primer día de la repetición.
-          </Text>
-        ) : null}
-      </Field>
+      <DateField
+        label="Fecha"
+        value={date}
+        onChange={(d) => setDate(d ?? (repeat === 'none' ? null : today))}
+        clearable={repeat === 'none'}
+        hint={repeat !== 'none' ? 'Es el primer día de la repetición.' : undefined}
+      />
 
       <TimeField
         label="Hora (opcional)"
@@ -261,10 +242,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   field: {
-    gap: space.sm,
-  },
-  row: {
-    flexDirection: 'row',
     gap: space.sm,
   },
   wrapRow: {

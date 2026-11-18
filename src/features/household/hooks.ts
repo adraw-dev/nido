@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/features/session/SessionProvider';
-import { accentFor, type AccentKey } from '@/ui/tokens';
+import { accentFor, type Accent } from '@/ui/tokens';
 import { useTheme } from '@/ui/theme';
 
 import {
@@ -97,9 +97,9 @@ export function useUpdateAccent(householdId: string | undefined) {
   const qc = useQueryClient();
   const { session } = useSession();
   return useMutation({
-    mutationFn: (accent: AccentKey) => updateAccent(session!.user.id, accent),
-    onSuccess: () => {
-      if (householdId) qc.invalidateQueries({ queryKey: householdKeys.members(householdId) });
-    },
+    mutationFn: (accent: Accent) => updateAccent(session!.user.id, accent),
+    // Espera la recarga para que la vista previa no salte al color anterior.
+    onSuccess: () =>
+      householdId ? qc.invalidateQueries({ queryKey: householdKeys.members(householdId) }) : undefined,
   });
 }

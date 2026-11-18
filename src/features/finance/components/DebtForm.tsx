@@ -1,5 +1,4 @@
-import { addMonths, format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { addMonths } from 'date-fns';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
@@ -7,7 +6,7 @@ import { z } from 'zod';
 import { useUserId } from '@/features/session/SessionProvider';
 import { fromKey, toKey, todayKey, type DateKey } from '@/lib/dates';
 import { formatCOP, groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, SegmentedControl, Text, TextField, space } from '@/ui';
+import { Button, DateField, Screen, SegmentedControl, Text, TextField, space } from '@/ui';
 
 import { payDaysLabel } from '../schedule';
 import type { Debt, DebtInput, Scope } from '../types';
@@ -46,13 +45,6 @@ export function DebtForm({ initial, current, defaultScope, submitLabel, submitti
   const [errors, setErrors] = useState<Partial<Record<'name' | 'total' | 'pending' | 'installment' | 'day', string>>>({});
   const canChangeScope = !initial || initial.owner_id === userId;
 
-  const presets: { label: string; value: DateKey | null }[] = [
-    { label: 'Sin fecha', value: null },
-    { label: 'En 6 meses', value: toKey(addMonths(fromKey(today), 6)) },
-    { label: 'En 1 año', value: toKey(addMonths(fromKey(today), 12)) },
-    { label: 'En 2 años', value: toKey(addMonths(fromKey(today), 24)) },
-  ];
-  const customDue = dueOn && !presets.some((p) => p.value === dueOn);
 
   function submit() {
     const parsed = nameSchema.safeParse(name);
@@ -150,14 +142,15 @@ export function DebtForm({ initial, current, defaultScope, submitLabel, submitti
         </>
       ) : null}
 
-      <Field label="Fecha límite para saldarla">
-        <View style={styles.wrapRow}>
-          {presets.map((p) => (
-            <Chip key={p.label} label={p.label} selected={dueOn === p.value} onPress={() => setDueOn(p.value)} />
-          ))}
-          {customDue ? <Chip label={format(fromKey(dueOn!), 'd MMM yyyy', { locale: es })} selected onPress={() => {}} /> : null}
-        </View>
-      </Field>
+      <DateField
+        label="Fecha límite para saldarla"
+        value={dueOn}
+        onChange={setDueOn}
+        placeholder="Sin fecha límite"
+        defaultDate={toKey(addMonths(fromKey(today), 12))}
+        clearable
+        clearLabel="Quitar la fecha límite"
+      />
 
       {canChangeScope ? (
         <Field
@@ -182,5 +175,4 @@ export function DebtForm({ initial, current, defaultScope, submitLabel, submitti
 
 const styles = StyleSheet.create({
   field: { gap: space.sm },
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

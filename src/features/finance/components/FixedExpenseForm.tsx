@@ -1,12 +1,10 @@
-import { startOfMonth } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 
 import { useUserId } from '@/features/session/SessionProvider';
-import { fromKey, toKey, todayKey, type DateKey } from '@/lib/dates';
+import { todayKey, type DateKey } from '@/lib/dates';
 import { groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, SegmentedControl, Text, TextField, space } from '@/ui';
+import { Button, DateField, Screen, SegmentedControl, Text, TextField } from '@/ui';
 
 import { sortCategories, useCategories } from '../hooks';
 import { payDaysLabel } from '../schedule';
@@ -30,7 +28,6 @@ export function FixedExpenseForm({ householdId, initial, defaultScope, submitLab
   const userId = useUserId();
   const categories = useCategories(householdId);
   const today = todayKey();
-  const monthStart = toKey(startOfMonth(fromKey(today)));
 
   const [name, setName] = useState(initial?.name ?? '');
   const [amountText, setAmountText] = useState(initial ? groupThousands(Number(initial.amount)) : '');
@@ -74,14 +71,6 @@ export function FixedExpenseForm({ householdId, initial, defaultScope, submitLab
       notes: notes.trim() || null,
       visibility: scope === 'hogar' ? 'shared' : 'personal',
     });
-  }
-
-  const startOptions: { label: string; value: DateKey }[] = [
-    { label: 'Desde hoy', value: today },
-    { label: 'Desde el 1 de este mes', value: monthStart },
-  ];
-  if (initial && !startOptions.some((o) => o.value === initial.starts_on)) {
-    startOptions.push({ label: 'Como estaba', value: initial.starts_on });
   }
 
   return (
@@ -132,13 +121,12 @@ export function FixedExpenseForm({ householdId, initial, defaultScope, submitLab
         <CategoryGrid categories={expenseCategories} value={categoryId} onChange={setCategoryId} />
       </Field>
 
-      <Field label="Cuenta desde" hint="Los pagos anteriores a esta fecha no aparecen como vencidos.">
-        <View style={styles.wrapRow}>
-          {startOptions.map((o) => (
-            <Chip key={o.label} label={o.label} selected={startsOn === o.value} onPress={() => setStartsOn(o.value)} />
-          ))}
-        </View>
-      </Field>
+      <DateField
+        label="Cuenta desde"
+        value={startsOn}
+        onChange={(d) => d && setStartsOn(d)}
+        hint="Los pagos anteriores a esta fecha no aparecen como vencidos."
+      />
 
       {canChangeScope ? (
         <Field
@@ -160,7 +148,3 @@ export function FixedExpenseForm({ householdId, initial, defaultScope, submitLab
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-});

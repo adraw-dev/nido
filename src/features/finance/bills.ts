@@ -34,24 +34,33 @@ export type FixedPeriod = {
   payment: FixedPayment | null;
   /** Lo pagado (si se ve el movimiento) o el valor del gasto fijo. */
   amount: number;
+  /** Fecha anterior a "Cuenta desde": se puede marcar pagada, pero nunca cuenta como vencida. */
+  beforeStart: boolean;
 };
 
-/** Períodos de un gasto fijo entre `from` y `to`, desde su inicio. */
+/**
+ * Períodos de un gasto fijo entre `from` y `to`. Por defecto, desde su inicio;
+ * con `includeBeforeStart` también los anteriores (sin marcarlos vencidos).
+ */
 export function fixedPeriods(
   fixed: FixedExpense,
   payments: FixedPayment[],
   from: DateKey,
   to: DateKey,
   today: DateKey,
+  includeBeforeStart = false,
 ): FixedPeriod[] {
   const paidBy = new Map(payments.filter((p) => p.fixed_expense_id === fixed.id).map((p) => [p.period_on, p] as const));
-  return payDatesBetween(fixed.pay_days, maxKey(from, fixed.starts_on), to).map((period) => {
+  const start = includeBeforeStart ? from : maxKey(from, fixed.starts_on);
+  return payDatesBetween(fixed.pay_days, start, to).map((period) => {
     const payment = paidBy.get(period) ?? null;
+    const beforeStart = period < fixed.starts_on;
     return {
       fixed,
       period,
       payment,
-      status: statusOf(period, !!payment, today),
+      beforeStart,
+      status: beforeStart && !payment ? 'pending' : statusOf(period, !!payment, today),
       amount: payment?.transaction ? Number(payment.transaction.amount) : Number(fixed.amount),
     };
   });
@@ -67,7 +76,12 @@ export type FixedBoard = {
   pending: number;
 };
 
-/** Lo que toca pagar en el mes de `monthStart`: pagado, pendiente y vencido. */
+/**
+ * Lo que toca pagar en el mes de `monthStart`: pagado, pendiente y vencido.
+ * En el mes actual y los siguientes aparecen todos los fijos (por eso son
+ * fijos), aunque "Cuenta desde" sea posterior; los meses pasados quedan como
+ * historial de lo que aplicaba.
+ */
 export function fixedBoard(
   list: FixedExpense[],
   payments: FixedPayment[],
@@ -75,8 +89,9 @@ export function fixedBoard(
   monthEnd: DateKey,
   today: DateKey,
 ): FixedBoard {
+  const showAll = monthEnd >= today;
   const periods = list
-    .flatMap((f) => fixedPeriods(f, payments, monthStart, monthEnd, today))
+    .flatMap((f) => fixedPeriods(f, payments, monthStart, monthEnd, today, showAll))
     .sort((a, b) => (a.period === b.period ? a.fixed.name.localeCompare(b.fixed.name, 'es') : a.period < b.period ? -1 : 1));
   const isCurrent = today >= monthStart && today <= monthEnd;
   const earlierOverdue = isCurrent

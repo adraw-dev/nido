@@ -35,7 +35,11 @@ export default function FixedExpenseDetailScreen() {
     if (!item) return [];
     const until = nextPayDate(item.pay_days, addDaysKey(today, 1)) ?? today;
     const from = toKey(addMonths(fromKey(today), -12));
-    return fixedPeriods(item, fixed.payments, from, until, today).reverse();
+    // Antes de "Cuenta desde" solo lo pagado y lo de este mes (igual que en Pagos).
+    const thisMonth = `${today.slice(0, 7)}-01`;
+    return fixedPeriods(item, fixed.payments, from, until, today, true)
+      .filter((p) => !p.beforeStart || p.payment || p.period >= thisMonth)
+      .reverse();
   }, [item, fixed.payments, today]);
 
   if (!item) {

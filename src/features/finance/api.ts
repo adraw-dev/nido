@@ -1,6 +1,7 @@
 import type { DateKey } from '@/lib/dates';
 import { supabase } from '@/lib/supabase';
 
+import type { ReadMovement } from './import/parse';
 import type {
   Category,
   Debt,
@@ -89,6 +90,47 @@ export async function createTransaction(householdId: string, input: TransactionI
   return data as Transaction;
 }
 
+/** Movimiento leído de una captura, listo para guardar. */
+export type ImportedTransactionInput = TransactionInput & { import_key: string };
+
+/**
+ * Guarda en bloque lo importado. Lo que ya existe (misma huella para el mismo
+ * hogar y persona) se ignora en silencio; devuelve cuántos quedaron nuevos.
+ */
+export async function importTransactions(householdId: string, rows: ImportedTransactionInput[]): Promise<number> {
+  if (!rows.length) return 0;
+  const { data, error } = await supabase
+    .from('transactions')
+    .upsert(
+      rows.map((r) => ({ household_id: householdId, source: 'captura', ...r })),
+      { onConflict: 'household_id,owner_id,import_key', ignoreDuplicates: true },
+    )
+    .select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
+}
+
+/** Envía una captura a la Edge Function `leer-captura` y devuelve los movimientos tal como se ven. */
+export async function readScreenshot(image: string, mediaType: string): Promise<ReadMovement[]> {
+  const { data, error } = await supabase.functions.invoke<{ movements?: ReadMovement[]; error?: string }>('leer-captura', {
+    body: { image, mediaType },
+  });
+  if (error) {
+    // El mensaje útil viene en el cuerpo de la respuesta de la función.
+    let message = '';
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      message = await context
+        .json()
+        .then((b: { error?: string }) => b?.error ?? '')
+        .catch(() => '');
+      if (!message && context.status === 404) message = 'La función de lectura aún no está desplegada en Supabase.';
+    }
+    throw new Error(message || 'No se pudo leer la captura. Revisa tu internet.');
+  }
+  return data?.movements ?? [];
+}
+
 export async function updateTransaction(id: string, input: TransactionInput): Promise<Transaction> {
   const { data, error } = await supabase.from('transactions').update(input).eq('id', id).select('*').single();
   if (error) throw error;
@@ -134,6 +176,8 @@ export function financeErrorMessage(error: unknown): string {
     return 'Este gasto fijo está archivado.';
   if (message.includes('debt_payments') && message.includes('row-level security')) return 'Esta deuda está archivada.';
   if (message.includes('row-level security')) return 'No tienes permiso para cambiar este registro.';
+  if (message.includes('import_key') || message.includes("'source' column"))
+    return 'Falta aplicar la migración de importación (20261118000000_importar_capturas.sql) en Supabase.';
   if (message.includes('target_amount')) return 'La meta debe ser mayor que cero.';
   if (message.includes('debts_opening_le_total')) return 'Lo que falta no puede ser mayor que el total.';
   if (message.toLowerCase().includes('fetch')) return 'Sin conexión con el servidor. Revisa tu internet.';

@@ -10,6 +10,8 @@ export * from './primitives/Chip';
 export * from './primitives/SegmentedControl';
 export * from './primitives/Fab';
 export * from './primitives/TimeField';
+export * from './primitives/DateField';
+export * from './primitives/HueSlider';
 export * from './EmptyState';
 export * from './ModuleScreen';
 export * from './Skeleton';

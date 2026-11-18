@@ -28,8 +28,12 @@ export function formatCOPShort(amount: number): string {
   return `${prefix}$ ${groupThousands(n)}`;
 }
 
-/** Lo que escribe la persona ("180.000", "180000", "$180 000") a un entero de pesos. */
+/**
+ * Lo que escribe la persona ("180.000", "180000", "$180 000") a un entero de pesos.
+ * Los centavos con coma ("14.480,00", como los muestra el banco) se descartan;
+ * antes se pegaban al número y "14.480,00" quedaba en 1.448.000.
+ */
 export function parseCOP(text: string): number {
-  const digits = text.replace(/\D/g, '');
+  const digits = text.replace(/,\d{1,2}\s*$/, '').replace(/\D/g, '');
   return digits ? Math.min(Number(digits), 999_999_999_999) : 0;
 }

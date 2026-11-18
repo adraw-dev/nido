@@ -119,7 +119,9 @@ export function FixedPeriodRow({
       ? `Pagó ${payerName ?? 'alguien'}${payment?.transaction ? ` · ${relativeDay(payment.transaction.occurred_on, today)}` : ''}`
       : status === 'overdue'
         ? `Venció ${when}`
-        : showName
+        : item.beforeStart && period < today
+          ? `Sin marcar · ${when}`
+          : showName
           ? `Vence ${when} · ${frequencyLabel(fixed.pay_days)}`
           : `Vence ${when}`;
   const title = showName ? fixed.name : capitalize(when);

@@ -19,7 +19,7 @@ import { useCurrentHousehold, useLineLookup } from '@/features/household/hooks';
 import { fromKey, relativeDay, toKey, type DateKey } from '@/lib/dates';
 import { formatCOP } from '@/lib/money';
 import { useToday } from '@/lib/useToday';
-import { Button, EmptyState, Fab, SegmentedControl, SkeletonRows, Text, space, touchTarget, useTheme } from '@/ui';
+import { Button, EmptyState, Fab, SegmentedControl, SkeletonRows, Text, radius, space, touchTarget, useTheme } from '@/ui';
 
 type MoneyTab = 'movimientos' | 'pagos' | 'metas' | 'reportes';
 
@@ -136,6 +136,24 @@ export default function MoneyScreen() {
             <Text tone="danger">No pudimos cargar los movimientos.</Text>
             <Button label="Reintentar" variant="tonal" onPress={() => yearTx.refetch()} />
           </View>
+        ) : null}
+
+        {view === 'movimientos' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Importar movimientos desde una captura del banco"
+            onPress={() => router.push('/dinero/importar')}
+            style={({ pressed }) => [styles.importRow, { borderColor: colors.rule, opacity: pressed ? 0.7 : 1 }]}
+          >
+            <MaterialCommunityIcons name="image-text" size={22} color={colors.trunk} />
+            <View style={styles.flex}>
+              <Text variant="bodyStrong">Importar captura del banco</Text>
+              <Text variant="caption" tone="muted">
+                Lee los movimientos de una captura de pantalla.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.inkSubtle} />
+          </Pressable>
         ) : null}
 
         {view === 'movimientos' ? (
@@ -294,6 +312,16 @@ const styles = StyleSheet.create({
   },
   block: {
     gap: space.md,
+  },
+  importRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    minHeight: touchTarget,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderWidth: 1,
+    borderRadius: radius.md,
   },
   dayHeader: {
     flexDirection: 'row',

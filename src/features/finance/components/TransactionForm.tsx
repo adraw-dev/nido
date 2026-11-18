@@ -1,13 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useUserId } from '@/features/session/SessionProvider';
-import { addDaysKey, fromKey, todayKey, type DateKey } from '@/lib/dates';
+import { todayKey, type DateKey } from '@/lib/dates';
 import { groupThousands, parseCOP } from '@/lib/money';
-import { Button, Chip, Screen, SegmentedControl, Text, TextField, fonts, radius, space, useTheme, useRevealFocused } from '@/ui';
+import { Button, Chip, DateField, Screen, SegmentedControl, Text, TextField, fonts, radius, space, useTheme, useRevealFocused } from '@/ui';
 
 import { sortCategories, useCategories, useGoals } from '../hooks';
 import { categoryIcon, type Scope, type Transaction, type TransactionInput, type TxKind } from '../types';
@@ -52,13 +50,6 @@ export function TransactionForm({ householdId, initial, defaults, submitting, er
   );
   const activeGoals = goals.progress.filter((g) => !g.achieved || g.goal.id === goalId);
 
-  const days = useMemo(() => {
-    const list = Array.from({ length: 31 }, (_, i) => addDaysKey(today, -i));
-    if (initial && !list.includes(initial.occurred_on)) list.push(initial.occurred_on);
-    return list;
-  }, [today, initial]);
-  const dayLabel = (d: DateKey) =>
-    d === today ? 'Hoy' : d === addDaysKey(today, -1) ? 'Ayer' : format(fromKey(d), 'EEE d MMM', { locale: es });
 
   function changeKind(next: TxKind) {
     setKind(next);
@@ -194,13 +185,7 @@ export function TransactionForm({ householdId, initial, defaults, submitting, er
         </Field>
       )}
 
-      <Field label="Fecha">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-          {days.map((d) => (
-            <Chip key={d} label={dayLabel(d)} selected={day === d} onPress={() => setDay(d)} />
-          ))}
-        </ScrollView>
-      </Field>
+      <DateField label="Fecha" value={day} onChange={(d) => d && setDay(d)} maximumDate={today} />
 
       {canChangeScope ? (
         <Field label="De quién es">

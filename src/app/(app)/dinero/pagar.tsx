@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale';
 import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { financeErrorMessage } from '@/features/finance/api';
 import { fixedPeriods, type DebtState, type FixedPeriod } from '@/features/finance/bills';
@@ -11,10 +11,10 @@ import { AmountInput, Field } from '@/features/finance/components/FormBits';
 import { useDebts, useFixedExpenses, usePayDebt, usePayFixedExpense } from '@/features/finance/hooks';
 import type { FixedExpense } from '@/features/finance/types';
 import { useCurrentHousehold } from '@/features/household/hooks';
-import { addDaysKey, fromKey, relativeDay, type DateKey } from '@/lib/dates';
+import { fromKey, relativeDay, type DateKey } from '@/lib/dates';
 import { formatCOP, groupThousands, parseCOP } from '@/lib/money';
 import { useToday } from '@/lib/useToday';
-import { Button, Chip, Screen, Text, space } from '@/ui';
+import { Button, Chip, DateField, Screen, Text, space } from '@/ui';
 
 /**
  * Pagar un período de un gasto fijo (?fijo=&periodo=) o abonar a una deuda
@@ -25,32 +25,13 @@ export default function PayScreen() {
   return params.deuda ? <PayDebt id={params.deuda} cuota={params.cuota} /> : <PayFixed id={params.fijo ?? ''} period={params.periodo ?? ''} />;
 }
 
-function useDays(today: DateKey) {
-  return useMemo(() => Array.from({ length: 31 }, (_, i) => addDaysKey(today, -i)), [today]);
-}
-
-function DayChips({ value, onChange, today }: { value: DateKey; onChange: (d: DateKey) => void; today: DateKey }) {
-  const days = useDays(today);
-  const label = (d: DateKey) =>
-    d === today ? 'Hoy' : d === addDaysKey(today, -1) ? 'Ayer' : format(fromKey(d), 'EEE d MMM', { locale: es });
-  return (
-    <Field label="Fecha del pago">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {days.map((d) => (
-          <Chip key={d} label={label(d)} selected={value === d} onPress={() => onChange(d)} />
-        ))}
-      </ScrollView>
-    </Field>
-  );
-}
-
 function PayFixed({ id, period }: { id: string; period: DateKey }) {
   const today = useToday();
   const { household } = useCurrentHousehold();
   const fixed = useFixedExpenses(household.id);
   const pay = usePayFixedExpense(household.id);
   const item = fixed.list.find((f) => f.id === id);
-  const state = item ? fixedPeriods(item, fixed.payments, period, period, today)[0] : undefined;
+  const state = item ? fixedPeriods(item, fixed.payments, period, period, today, true)[0] : undefined;
 
   if (!item || !state) {
     return (
@@ -126,7 +107,7 @@ function PayFixedForm({
         error={amountError}
         size="lg"
       />
-      <DayChips value={paidOn} onChange={setPaidOn} today={today} />
+      <DateField label="Fecha del pago" value={paidOn} onChange={(d) => d && setPaidOn(d)} maximumDate={today} />
       <Text variant="caption" tone="muted">
         Queda como gasto en Dinero, firmado con tu color. Para deshacerlo, borra ese movimiento.
       </Text>
@@ -251,7 +232,7 @@ function PayDebtForm({
       <View style={styles.wrap}>
         <Chip label={`Todo (${formatCOP(pending)})`} selected={amount === pending} onPress={() => setAmountText(groupThousands(pending))} />
       </View>
-      <DayChips value={paidOn} onChange={setPaidOn} today={today} />
+      <DateField label="Fecha del pago" value={paidOn} onChange={(d) => d && setPaidOn(d)} maximumDate={today} />
       <Text variant="caption" tone="muted">
         Queda como gasto en Dinero (categoría Deudas), firmado con tu color. Para deshacerlo, borra ese movimiento.
       </Text>
@@ -261,6 +242,5 @@ function PayDebtForm({
 
 const styles = StyleSheet.create({
   head: { gap: space.xs },
-  row: { flexDirection: 'row', gap: space.sm },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

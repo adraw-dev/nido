@@ -17,6 +17,7 @@
 - `20261109000000_mvp.sql`
 - `20261110000000_ensure_profile.sql`: crea perfiles faltantes y hace que `create_household`/`join_household` garanticen el perfil.
 - **Pendiente de aplicar:** `20261113000000_deudas_fijos.sql` (deudas y gastos fijos). Sin ella, la pestaña Dinero → Pagos muestra error al cargar.
+- **Pendiente de aplicar:** `20261118000000_importar_capturas.sql` (columnas `source` e `import_key` de `transactions`). Sin ella, guardar lo importado de una captura falla con un aviso.
 
 **Configuración de Supabase:** *Confirm email* desactivado mientras desarrollan.
 
@@ -76,6 +77,24 @@ Lo que contiene la fase 0:
 - `SegmentedControl` ahora encoge el texto si no cabe (`adjustsFontSizeToFit`).
 - Recordatorios de pagos (13 nov 2026, por probar): en Recordatorios → Pagos (hora 7/9/12/6 p. m., default 9 a. m.). Cada período sin pagar (`unpaidBetween` en `bills.ts`) da: aviso el día antes (opcional), **alarma a pantalla completa el día de pago** (`alarmBills`, con el módulo `nido-alarm`; en Expo Go llega como aviso normal) y un aviso diario los 3 días siguientes si sigue sin marcar. Al pagarlo se cancelan al reagendar. Lo de la pareja solo se cancela cuando el celular recibe el pago (app abierta), igual que las tareas.
 - El botón de la alarma ahora dice "Ver en Nido" (sirve para tareas y pagos): requiere `npx expo prebuild -p android` y recompilar.
+
+**Versión 1.3.0 (versionCode 4, 18 nov 2026):** APK `dist/nido-1.3.0.apk`.
+- Importación de capturas del banco (abajo); lo importado queda "Del hogar" por defecto.
+- Dinero → Pagos: en el mes actual y los siguientes salen todos los gastos fijos. Los períodos anteriores a "Cuenta desde" aparecen como "Sin marcar" (se pueden pagar, nunca cuentan como vencidos ni generan avisos).
+- Fechas con calendario nativo: `DateField` (`src/ui/primitives/DateField.tsx`) reemplaza los chips de días en movimientos, pagos, vehículos, tareas, deudas, gastos fijos e importación.
+- Color de línea: 11 colores (violeta, uva, cian, lima, café y grafito nuevos) y "Tu propio color" con barra de tonos (`HueSlider`). Se guarda como `hue-<0..359>` en `profiles.accent` y el brillo se ajusta a claro/oscuro (`hueColor` en `tokens.ts`). Avisa si el tono se parece al azul del tronco.
+
+**Importar movimientos desde capturas del banco (18 nov 2026), por probar:**
+- Dinero → Movimientos → "Importar captura del banco" (`dinero/importar`): eliges hasta 5 capturas (`expo-image-picker`, funciona en Expo Go), Nido las lee, muestras la lista para revisar y guardas en bloque. "Agregar captura" suma más sin perder lo corregido.
+- Lectura: Edge Function `supabase/functions/leer-captura` con **Claude Haiku 5.5** (US$0,10 / 0,50 por millón de tokens; ~US$0,0004 por captura). La IA solo transcribe lo que ve (fecha, descripción, valor con su signo, color); la imagen no se guarda.
+- Todo lo demás lo decide la app, sin IA, en `src/features/finance/import/parse.ts`: **`-$` = gasto, solo `$` = ingreso**; si el color (rojo/verde) contradice el signo, la fila sale "Revisar". Montos `14.480,00` → 14.480; fechas `15 NOV 2026`, `15/11/2026`, `Hoy`, `Ayer`, sin año (año actual o el anterior si quedaría en el futuro).
+- Duplicados: cada movimiento leído tiene una huella (`fecha|tipo|valor|descripción`, con `#2` si se repite en la misma captura). Única por hogar y persona en la base (`ON CONFLICT DO NOTHING`), así que reimportar no duplica; en la revisión sale "Ya registrado". Si hay uno manual con el mismo día, tipo y valor, sale "¿Repetido?" y desmarcado. Dos capturas que se solapan no repiten movimientos.
+- Categoría sugerida: la que usaste antes para esa misma descripción (últimos 6 meses) o palabras clave (D1, ARA, Éxito → Mercado; NOMI/NÓMINA → Salario; Terpel/EDS → Vehículos; Uber/DiDi → Transporte…). Por defecto lo importado queda "Solo mío".
+- **Para activarla** (una vez): (1) aplicar la migración; (2) crear la clave en console.anthropic.com, poner un límite de gasto mensual y guardarla en Supabase → Edge Functions → Secrets como `ANTHROPIC_API_KEY`; (3) Supabase → Edge Functions → Deploy a new function → nombre `leer-captura`, pegar `supabase/functions/leer-captura/index.ts`, con "Verify JWT" activado.
+- Corregido de paso: `parseCOP("14.480,00")` daba 1.448.000 (ahora descarta los centavos con coma), y el formulario de movimiento tiene "Otra fecha…" (calendario nativo en Android) para fechas de más de 31 días.
+- `supabase/functions` queda fuera de `tsc` y de ESLint (es código Deno).
+- Pendiente: sugerir "marcar como pago" cuando la descripción coincida con una deuda o gasto fijo; "Compartir con Nido" desde la galería (requiere recompilar).
+- La APK necesita `npx expo prebuild -p android` y recompilar por el módulo nativo de `expo-image-picker`.
 
 **Teclado (10 nov 2026):** con el modo de borde a borde de Android (SDK 58) la ventana no se encoge con el teclado. `Screen` usa `KeyboardAvoidingView` con `padding` en ambas plataformas (descontando la barra superior) y desplaza el campo enfocado a la vista; `TextField` lo pide al enfocarse. Campos de texto propios: llamar `useRevealFocused()` en `onFocus`.
 

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { AccentKey } from '@/ui/tokens';
+import type { Accent } from '@/ui/tokens';
 
 import type { Household, Invite, Member, Membership } from './types';
 
@@ -50,7 +50,7 @@ export async function createInvite(householdId: string): Promise<Invite> {
   return data as Invite;
 }
 
-export async function updateAccent(userId: string, accent: AccentKey) {
+export async function updateAccent(userId: string, accent: Accent) {
   const { error } = await supabase.from('profiles').update({ accent }).eq('id', userId);
   if (error) throw error;
 }
